@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuevo Camión - Hirata</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .btn-guardar {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .btn-guardar:hover {
+            background: #0056b3;
+        }
+
+        .btn-cancelar {
+            background: #6c757d;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .btn-cancelar:hover {
+            background: #545b62;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Agregar Camión</h1>
+        <p class="subtitle">Complete los datos del nuevo vehículo</p>
+
+        <form method="POST" action="/camiones/nuevo">
+            <div class="form-group">
+                <label for="patente">Patente:</label>
+                <input type="text" id="patente" name="patente" required placeholder="Ej: ABC-123">
+            </div>
+
+            <div class="form-group">
+                <label for="modelo">Modelo:</label>
+                <input type="text" id="modelo" name="modelo" required placeholder="Ej: Volvo FH16">
+            </div>
+
+            <div class="form-group">
+                <label for="estado">Estado:</label>
+                <select id="estado" name="estado" required>
+                    <option value="activo">Activo</option>
+                    <option value="mantenimiento">En Mantenimiento</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="kilometraje">Kilometraje:</label>
+                <input type="number" id="kilometraje" name="kilometraje" required placeholder="Ej: 150000">
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-guardar">Guardar Camión</button>
+                <a href="/camiones" class="btn-cancelar">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

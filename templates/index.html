@@ -1,21 +1,60 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Sistema Hirata</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hirata</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
-
 <body>
+    <div class="dashboard-container">
 
-<h1>Sistema de Control de Flota</h1>
+        
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Hirata</h2>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul>
 
-<nav>
-    <a href="/">Inicio</a>
-    <a href="/camiones">Camiones</a>
-    <a href="/mantenimiento">Mantenimientos</a>
-</nav>
+                   
 
-<p>Bienvenido al sistema de monitoreo de kilometraje de camiones.</p>
+                    <li>
+                        <a href="/camiones">
+                            <span class="text">Camiones</span>
+                        </a>
+                    </li>
 
+                    <li>
+                        <a href="/mantenimiento">
+                            <span class="text">Mantenimiento</span>
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="#">
+                            <span class="text">Equipos Informáticos</span>
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="#">
+                            <span class="text">Sensores (Prototipo)</span>
+                        </a>
+                    </li>
+
+                    
+
+                </ul>
+            </nav>
+            
+            
+        </aside>
+
+        
+        
+
+    </div>
 </body>
 </html>

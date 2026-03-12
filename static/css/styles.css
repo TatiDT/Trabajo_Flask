@@ -1,13 +1,280 @@
-body{
-    font-family: Arial;
-    margin: 40px;
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-nav a{
-    margin-right: 20px;
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f7fa;
+}
+
+.dashboard-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+                                                                               
+.sidebar {
+    width: 280px;
+    background: linear-gradient(180deg, #6B1333 0%, #4A0B24 100%);                
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    height: 100vh;
+    left: 0;
+    top: 0;
+    box-shadow: 2px 0 10px rgba(106, 19, 51, 0.2);
+}
+
+.sidebar-header {
+    padding: 25px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.sidebar-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 1px;
+}
+
+.sidebar-nav {
+    flex: 1;
+    padding: 20px 0;
+    overflow-y: auto;
+}
+
+.sidebar-nav ul {
+    list-style: none;
+}
+
+.sidebar-nav li {
+    margin: 5px 15px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.sidebar-nav li a {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    color: rgba(255, 255, 255, 0.8);  /* Letras blancas con opacidad */
     text-decoration: none;
+    font-size: 15px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
 }
 
-h1{
+.sidebar-nav li a .icon {
+    margin-right: 12px;
+    font-size: 20px;
+    width: 24px;
+    text-align: center;
+}
+
+.sidebar-nav li a .text {
+    flex: 1;
+}
+
+/* Hover - más blanco */
+.sidebar-nav li:hover a {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    transform: translateX(5px);
+}
+
+/* Active - morado más claro */
+.sidebar-nav li.active a {
+    background-color: #8A1F44;
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(106, 19, 51, 0.4);
+}
+
+.sidebar-footer {
+    padding: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    text-align: center;
+}
+
+/* ===== MAIN CONTENT ===== */
+.main-content {
+    flex: 1;
+    margin-left: 280px;
+    padding: 25px;
+    background-color: #f5f7fa;
+    min-height: 100vh;
+}
+
+.content-header {
+    margin-bottom: 30px;
+}
+
+.content-header h1 {
+    font-size: 28px;
     color: #2c3e50;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.content-header .subtitle {
+    color: #7f8c8d;
+    font-size: 15px;
+}
+
+/* Buscador */
+.search-section {
+    margin-bottom: 25px;
+}
+
+.search-input {
+    width: 100%;
+    max-width: 400px;
+    padding: 12px 18px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    background: white;
+    transition: all 0.3s;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #6B1333;
+    box-shadow: 0 0 0 3px rgba(106, 19, 51, 0.1);
+}
+
+/* Tabla */
+.table-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    margin-bottom: 25px;
+    border: 1px solid #edf2f7;
+}
+
+.trucks-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Inter', sans-serif;
+}
+
+.trucks-table th {
+    text-align: left;
+    padding: 16px 20px;
+    background-color: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.trucks-table td {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #1e293b;
+    font-size: 14px;
+}
+
+.trucks-table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+.trucks-table .patente {
+    font-weight: 600;
+    color: #0f172a;
+}
+
+/* Estados */
+.estado-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: capitalize;
+    text-align: center;
+    min-width: 110px;
+}
+
+.estado-activo {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.estado-mantenimiento {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.estado-disponible {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+/* Botón Agregar - MORADO */
+.button-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.btn-agregar {
+    background: linear-gradient(90deg, #6B1333 0%, #8A1F44 100%);
+    color: white;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 40px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 10px rgba(106, 19, 51, 0.3);
+    transition: all 0.3s ease;
+}
+
+.btn-agregar:hover {
+    background: linear-gradient(90deg, #8A1F44 0%, #6B1333 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(106, 19, 51, 0.4);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 0;
+        overflow: hidden;
+        position: fixed;
+        z-index: 1000;
+    }
+
+    .main-content {
+        margin-left: 0;
+    }
+    
+    .table-container {
+        overflow-x: auto;
+    }
+    
+    .trucks-table {
+        min-width: 600px;
+    }
+    
+    .search-input {
+        max-width: 100%;
+    }
+    
+    .btn-agregar {
+        width: 100%;
+        justify-content: center;
+    }
 }
