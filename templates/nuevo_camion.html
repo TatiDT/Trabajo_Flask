@@ -4,130 +4,65 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nuevo Camión - Hirata</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: Arial, sans-serif;
-        }
-
-        body {
-            background-color: #f5f5f5;
-            padding: 30px;
-        }
-
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 10px;
-            padding: 30px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
-        }
-
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: #555;
-            font-weight: 500;
-        }
-
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #007bff;
-        }
-
-        .form-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 30px;
-        }
-
-        .btn-guardar {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 6px;
-            font-size: 14px;
-            cursor: pointer;
-        }
-
-        .btn-guardar:hover {
-            background: #0056b3;
-        }
-
-        .btn-cancelar {
-            background: #6c757d;
-            color: white;
-            padding: 12px 25px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 14px;
-        }
-
-        .btn-cancelar:hover {
-            background: #545b62;
-        }
-    </style>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
     <div class="container">
         <h1>Agregar Camión</h1>
         <p class="subtitle">Complete los datos del nuevo vehículo</p>
 
-        <form method="POST" action="/camiones/nuevo">
+        
+        {% if error %}
+            <div class="alert alert-error">{{ error }}</div>
+        {% endif %}
+
+        
+        <form method="POST" action="{{ url_for('nuevo_camion') }}">
             <div class="form-group">
                 <label for="patente">Patente:</label>
-                <input type="text" id="patente" name="patente" required placeholder="Ej: ABC-123">
+                <input type="text" 
+                       id="patente" 
+                       name="patente" 
+                       value="{{ request.form.patente or '' }}"
+                       placeholder="Ej: ABC-123" 
+                       required>
             </div>
 
             <div class="form-group">
                 <label for="modelo">Modelo:</label>
-                <input type="text" id="modelo" name="modelo" required placeholder="Ej: Volvo FH16">
+                <input type="text" 
+                       id="modelo" 
+                       name="modelo" 
+                       value="{{ request.form.modelo or '' }}"
+                       placeholder="Ej: Volvo FH16" 
+                       required>
             </div>
 
             <div class="form-group">
                 <label for="estado">Estado:</label>
                 <select id="estado" name="estado" required>
-                    <option value="activo">Activo</option>
-                    <option value="mantenimiento">En Mantenimiento</option>
+                    <option value="" {% if not request.form.estado %}selected{% endif %}>Seleccione un estado</option>
+                    <option value="Disponible" {% if request.form.estado == 'Disponible' %}selected{% endif %}>Disponible</option>
+                    <option value="En ruta" {% if request.form.estado == 'En ruta' %}selected{% endif %}>En ruta</option>
+                    <option value="En mantenimiento" {% if request.form.estado == 'En mantenimiento' %}selected{% endif %}>En mantenimiento</option>
                 </select>
             </div>
 
             <div class="form-group">
-                <label for="kilometraje">Kilometraje:</label>
-                <input type="number" id="kilometraje" name="kilometraje" required placeholder="Ej: 150000">
+                <label for="kilometraje">Kilometraje (km):</label>
+                <input type="number" 
+                       id="kilometraje" 
+                       name="kilometraje" 
+                       value="{{ request.form.kilometraje or '' }}"
+                       placeholder="Ej: 150000" 
+                       min="0"
+                       required>
             </div>
 
             <div class="form-actions">
                 <button type="submit" class="btn-guardar">Guardar Camión</button>
-                <a href="/camiones" class="btn-cancelar">Cancelar</a>
+                <a href="{{ url_for('lista_camiones') }}" class="btn-cancelar">Cancelar</a>
             </div>
         </form>
     </div>

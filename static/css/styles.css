@@ -9,15 +9,16 @@ body {
     background-color: #f5f7fa;
 }
 
+
 .dashboard-container {
     display: flex;
     min-height: 100vh;
 }
 
-                                                                               
+
 .sidebar {
     width: 280px;
-    background: linear-gradient(180deg, #6B1333 0%, #4A0B24 100%);                
+    background: linear-gradient(180deg, #6B1333 0%, #4A0B24 100%);
     color: #fff;
     display: flex;
     flex-direction: column;
@@ -60,7 +61,7 @@ body {
     display: flex;
     align-items: center;
     padding: 12px 15px;
-    color: rgba(255, 255, 255, 0.8);  /* Letras blancas con opacidad */
+    color: rgba(255, 255, 255, 0.8);
     text-decoration: none;
     font-size: 15px;
     border-radius: 8px;
@@ -78,14 +79,12 @@ body {
     flex: 1;
 }
 
-/* Hover - más blanco */
 .sidebar-nav li:hover a {
     background-color: rgba(255, 255, 255, 0.15);
     color: #fff;
     transform: translateX(5px);
 }
 
-/* Active - morado más claro */
 .sidebar-nav li.active a {
     background-color: #8A1F44;
     color: #fff;
@@ -100,7 +99,7 @@ body {
     text-align: center;
 }
 
-/* ===== MAIN CONTENT ===== */
+
 .main-content {
     flex: 1;
     margin-left: 280px;
@@ -125,9 +124,17 @@ body {
     font-size: 15px;
 }
 
-/* Buscador */
+/* busqueda */
 .search-section {
     margin-bottom: 25px;
+}
+
+.search-form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
 }
 
 .search-input {
@@ -147,7 +154,38 @@ body {
     box-shadow: 0 0 0 3px rgba(106, 19, 51, 0.1);
 }
 
-/* Tabla */
+.search-button {
+    background: #8b1538;
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: background 0.3s;
+}
+
+.search-button:hover {
+    background: #a01a45;
+}
+
+.clean-btn {
+    background: #6c757d;
+}
+
+.clean-btn:hover {
+    background: #545b62;
+}
+
+.result-count {
+    margin: 10px 0;
+    color: #555;
+    font-style: italic;
+}
+
+/* tabla de los camiones */
 .table-container {
     background: white;
     border-radius: 12px;
@@ -191,7 +229,7 @@ body {
     color: #0f172a;
 }
 
-/* Estados */
+/* colores de estado en parte de la tabla */
 .estado-badge {
     display: inline-block;
     padding: 6px 14px;
@@ -203,22 +241,22 @@ body {
     min-width: 110px;
 }
 
-.estado-activo {
-    background-color: #dcfce7;
-    color: #166534;
-}
-
-.estado-mantenimiento {
-    background-color: #fee2e2;
-    color: #991b1b;
+.estado-en-ruta {
+    background-color: #fff3cd;
+    color: #856404;
 }
 
 .estado-disponible {
-    background-color: #dbeafe;
-    color: #1e40af;
+    background-color: #d4edda;
+    color: #155724;
 }
 
-/* Botón Agregar - MORADO */
+.estado-mantenimiento {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* bton de agregar*/
 .button-container {
     display: flex;
     justify-content: flex-end;
@@ -248,7 +286,114 @@ body {
     box-shadow: 0 6px 15px rgba(106, 19, 51, 0.4);
 }
 
-/* Responsive */
+/* confi de estilo para nuevo camion  */
+.container {
+    max-width: 600px;
+    margin: 40px auto;
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+
+.container h1 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.container .subtitle {
+    color: #666;
+    margin-bottom: 30px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #555;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #8b1538;
+    box-shadow: 0 0 5px rgba(139,21,56,0.3);
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 30px;
+}
+
+.btn-guardar {
+    background: #8b1538;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.btn-guardar:hover {
+    background: #a01a45;
+}
+
+.btn-cancelar {
+    background: #6c757d;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 14px;
+    transition: background 0.3s;
+    display: inline-block;
+}
+
+.btn-cancelar:hover {
+    background: #545b62;
+}
+
+/* alertas */
+.alert {
+    padding: 12px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.alert-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* mensajes para resultds */
+.no-results {
+    text-align: center;
+    padding: 30px;
+    color: #666;
+    font-style: italic;
+}
+
+
 @media (max-width: 768px) {
     .sidebar {
         width: 0;
@@ -277,4 +422,106 @@ body {
         width: 100%;
         justify-content: center;
     }
+
+    
+    .container {
+        margin: 20px;
+        padding: 20px;
+    }
+    
+    .search-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .search-button, .clean-btn {
+        text-align: center;
+    }
+}
+
+.form-container {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    max-width: 500px;
+    margin-top: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #333;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #8b1538;
+    box-shadow: 0 0 5px rgba(139,21,56,0.3);
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 30px;
+}
+
+.btn-guardar {
+    background-color: #8b1538;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.3s;
+}
+
+.btn-guardar:hover {
+    background-color: #a01a45;
+}
+
+.btn-cancelar {
+    background-color: #6c757d;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 14px;
+    transition: background 0.3s;
+    display: inline-block;
+}
+
+.btn-cancelar:hover {
+    background-color: #5a6268;
+}
+
+
+.alert {
+    padding: 12px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.alert-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
 }

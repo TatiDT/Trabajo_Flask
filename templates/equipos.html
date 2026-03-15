@@ -1,36 +1,35 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hirata - Mantenimientos</title>
+    <title>Hirata - Equipos Informáticos</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
-
 <body>
     <div class="dashboard-container">
-
+        
+        
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h2>Hirata</h2>
             </div>
             <nav class="sidebar-nav">
                 <ul>
-                    <li {% if request.path==url_for('lista_camiones') %}class="active" {% endif %}>
+                    <li>
                         <a href="{{ url_for('lista_camiones') }}">
                             <i class="fas fa-truck icon"></i>
                             <span class="text">Camiones</span>
                         </a>
                     </li>
-                    <li {% if request.path==url_for('mantenimiento') %}class="active" {% endif %}>
+                    <li>
                         <a href="{{ url_for('mantenimiento') }}">
                             <i class="fas fa-wrench icon"></i>
-                            <span class="text">Mantenimientos</span>
+                            <span class="text">Mantenimiento</span>
                         </a>
                     </li>
-                    <li {% if request.path==url_for('lista_equipos') %}class="active" {% endif %}>
+                    <li class="active">  
                         <a href="{{ url_for('lista_equipos') }}">
                             <i class="fas fa-laptop icon"></i>
                             <span class="text">Equipos Informáticos</span>
@@ -49,72 +48,68 @@
             </div>
         </aside>
 
+        
         <main class="main-content">
             <div class="content-header">
-                <h1>Mantenimientos</h1>
-                <p class="subtitle">Registro de mantenimientos de vehículos</p>
+                <h1>Equipos Informáticos</h1>
+                <p class="subtitle">Gestión de celulares y computadores</p>
             </div>
 
-
+            
             <div class="search-section">
-                <form method="GET" action="{{ url_for('mantenimiento') }}" class="search-form">
-                    <input type="text" name="buscar" class="search-input"
-                        placeholder="Buscar por fecha, tipo o descripción..." value="{{ busqueda }}">
+                <form method="GET" action="{{ url_for('lista_equipos') }}" class="search-form">
+                    <input type="text" 
+                           name="buscar" 
+                           class="search-input" 
+                           placeholder="Buscar por tipo, modelo u origen..."     
+                           value="{{ busqueda }}">
                     <button type="submit" class="search-button">Buscar</button>
                     {% if busqueda %}
-                    <a href="{{ url_for('mantenimiento') }}" class="search-button clean-btn">✕ Limpiar</a>
+                        <a href="{{ url_for('lista_equipos') }}" class="search-button clean-btn">✕ Limpiar</a>
                     {% endif %}
                 </form>
             </div>
-
-            {% if busqueda %}
-            <div class="result-count">
-                Mostrando {{ mantenimientos|length }} resultado(s) para "{{ busqueda }}"
-            </div>
-            {% endif %}
-
 
             <div class="table-container">
                 <table class="trucks-table">
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Equipo</th>
-                            <th>Fecha Inicio</th>
-                            <th>Fecha Fin</th>
-                            <th>Descripción</th>
+                            <th>Tipo</th>
+                            <th>Modelo</th>
+                            <th>Origen</th>
                         </tr>
                     </thead>
                     <tbody>
-    {% if mantenimientos %}
-        {% for m in mantenimientos %}
-        <tr>
-            <td>{{ m.id }}</td>
-            <td>{{ m.elemento_nombre }}</td>  
-            <td>{{ m.fecha_inicio }}</td>
-            <td>{{ m.fecha_fin or 'En curso' }}</td>
-            <td>{{ m.descripcion }}</td>
-        </tr>
-        {% endfor %}
-    {% else %}
-        <tr><td colspan="5" class="no-results">No se encontraron mantenimientos</td></tr>
-    {% endif %}
-</tbody>
+                        {% if equipos %}
+                            {% for eq in equipos %}
+                            <tr>
+                                <td>{{ eq.id }}</td>
+                                <td>{{ eq.tipo }}</td>
+                                <td>{{ eq.modelo }}</td>
+                                <td>
+                                    <span class="origen-badge {% if eq.origen == 'oficina' %}origen-oficina{% else %}origen-flota{% endif %}">
+                                        {{ eq.origen|capitalize }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="no-results">
+                                    No se encontraron equipos para "{{ busqueda }}"
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
                 </table>
             </div>
-
-
-
-            <div class="button-container" style="display: flex; gap: 10px; justify-content: flex-end;">
-                <a href="{{ url_for('nuevo_mantenimiento_camion') }}" class="btn-agregar">
-                    <i class="fas fa-truck"></i> Mantenimiento a Camión
-                </a>
-                <a href="{{ url_for('nuevo_mantenimiento_equipo') }}" class="btn-agregar" style="background: #17a2b8;">
-                    <i class="fas fa-laptop"></i> Mantenimiento a Equipo
+            <div class="button-container">
+                <a href="{{ url_for('nuevo_equipo') }}" class="btn-agregar">
+                    <i class="fas fa-plus"></i> Agregar Equipo
                 </a>
             </div>
         </main>
     </div>
 </body>
-
 </html>
