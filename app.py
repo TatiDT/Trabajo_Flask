@@ -135,7 +135,7 @@ def mantenimiento():
     db = get_db()
     cursor = db.cursor()
     
-    # Consulta con JOIN para obtener datos del camión o equipo según corresponda
+    
     query = """
         SELECT 
             m.*,
