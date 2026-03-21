@@ -9,27 +9,25 @@
 </head>
 <body>
     <div class="dashboard-container">
-        
-        
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h2>Hirata</h2>
             </div>
             <nav class="sidebar-nav">
                 <ul>
-                    <li>
+                    <li {% if request.path == url_for('lista_camiones') %}class="active"{% endif %}>
                         <a href="{{ url_for('lista_camiones') }}">
                             <i class="fas fa-truck icon"></i>
                             <span class="text">Camiones</span>
                         </a>
                     </li>
-                    <li>
+                    <li {% if request.path == url_for('mantenimiento') %}class="active"{% endif %}>
                         <a href="{{ url_for('mantenimiento') }}">
                             <i class="fas fa-wrench icon"></i>
                             <span class="text">Mantenimiento</span>
                         </a>
                     </li>
-                    <li class="active">  
+                    <li {% if request.path == url_for('lista_equipos') %}class="active"{% endif %}>
                         <a href="{{ url_for('lista_equipos') }}">
                             <i class="fas fa-laptop icon"></i>
                             <span class="text">Equipos Informáticos</span>
@@ -48,20 +46,18 @@
             </div>
         </aside>
 
-        
         <main class="main-content">
             <div class="content-header">
                 <h1>Equipos Informáticos</h1>
                 <p class="subtitle">Gestión de celulares y computadores</p>
             </div>
 
-            
             <div class="search-section">
                 <form method="GET" action="{{ url_for('lista_equipos') }}" class="search-form">
                     <input type="text" 
                            name="buscar" 
                            class="search-input" 
-                           placeholder="Buscar por tipo, modelo u origen..."     
+                           placeholder="Buscar por tipo, modelo u origen..."
                            value="{{ busqueda }}">
                     <button type="submit" class="search-button">Buscar</button>
                     {% if busqueda %}
@@ -69,6 +65,12 @@
                     {% endif %}
                 </form>
             </div>
+
+            {% if busqueda %}
+                <div class="result-count">
+                    Mostrando {{ equipos|length }} resultado(s) para "{{ busqueda }}"
+                </div>
+            {% endif %}
 
             <div class="table-container">
                 <table class="trucks-table">
@@ -78,6 +80,7 @@
                             <th>Tipo</th>
                             <th>Modelo</th>
                             <th>Origen</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -92,11 +95,17 @@
                                         {{ eq.origen|capitalize }}
                                     </span>
                                 </td>
+                                <td class="acciones">
+                                    <a href="{{ url_for('editar_equipo', id=eq.id) }}" class="btn-editar">Editar</a>
+                                    <form method="POST" action="{{ url_for('eliminar_equipo', id=eq.id) }}" style="display:inline;">
+                                        <button type="submit" class="btn-eliminar" onclick="return confirm('¿Eliminar este equipo?')">Eliminar</button>
+                                    </form>
+                                </td>
                             </tr>
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="4" class="no-results">
+                                <td colspan="5" class="no-results">
                                     No se encontraron equipos para "{{ busqueda }}"
                                 </td>
                             </tr>
@@ -104,6 +113,7 @@
                     </tbody>
                 </table>
             </div>
+
             <div class="button-container">
                 <a href="{{ url_for('nuevo_equipo') }}" class="btn-agregar">
                     <i class="fas fa-plus"></i> Agregar Equipo

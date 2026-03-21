@@ -525,3 +525,34 @@ body {
     color: #721c24;
     border: 1px solid #f5c6cb;
 }
+
+/* Botones de acción */
+.acciones {
+    white-space: nowrap;
+    text-align: center;
+}
+.btn-editar, .btn-eliminar {
+    display: inline-block;
+    padding: 6px 12px;
+    margin: 0 2px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: none;
+    border: none;
+    font-family: inherit;
+}
+.btn-editar {
+    background-color: #28a745;
+    color: white;
+}
+.btn-editar:hover {
+    background-color: #218838;
+}
+.btn-eliminar {
+    background-color: #dc3545;
+    color: white;
+}
+.btn-eliminar:hover {
+    background-color: #c82333;
+}

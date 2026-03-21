@@ -9,41 +9,38 @@
 </head>
 <body>
     <div class="dashboard-container">
-        
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h2>Hirata</h2>
             </div>
-            
             <nav class="sidebar-nav">
-    <ul>
-        <li {% if request.path == url_for('lista_camiones') %}class="active"{% endif %}>
-            <a href="{{ url_for('lista_camiones') }}">
-                <i class="fas fa-truck icon"></i>
-                <span class="text">Camiones</span>
-            </a>
-        </li>
-        <li {% if request.path == url_for('mantenimiento') %}class="active"{% endif %}>
-            <a href="{{ url_for('mantenimiento') }}">
-                <i class="fas fa-wrench icon"></i>
-                <span class="text">Mantenimiento</span>
-            </a>
-        </li>
-        <li {% if request.path == url_for('lista_equipos') %}class="active"{% endif %}>
-            <a href="{{ url_for('lista_equipos') }}">
-                <i class="fas fa-laptop icon"></i>
-                <span class="text">Equipos Informáticos</span>
-            </a>
-        </li>
-        <li>
-            <a href="#">
-                <i class="fas fa-microchip icon"></i>
-                <span class="text">Sensores (Prototipo)</span>
-            </a>
-        </li>
-    </ul>
-</nav>
-            
+                <ul>
+                    <li {% if request.path == url_for('lista_camiones') %}class="active"{% endif %}>
+                        <a href="{{ url_for('lista_camiones') }}">
+                            <i class="fas fa-truck icon"></i>
+                            <span class="text">Camiones</span>
+                        </a>
+                    </li>
+                    <li {% if request.path == url_for('mantenimiento') %}class="active"{% endif %}>
+                        <a href="{{ url_for('mantenimiento') }}">
+                            <i class="fas fa-wrench icon"></i>
+                            <span class="text">Mantenimiento</span>
+                        </a>
+                    </li>
+                    <li {% if request.path == url_for('lista_equipos') %}class="active"{% endif %}>
+                        <a href="{{ url_for('lista_equipos') }}">
+                            <i class="fas fa-laptop icon"></i>
+                            <span class="text">Equipos Informáticos</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="fas fa-microchip icon"></i>
+                            <span class="text">Sensores (Prototipo)</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
             <div class="sidebar-footer">
                 <span>Transportes Hirata 2026</span>
             </div>
@@ -63,9 +60,8 @@
                            placeholder="Buscar por placa o modelo..."
                            value="{{ busqueda }}">
                     <button type="submit" class="search-button">Buscar</button>
-                    
                     {% if busqueda %}
-                        <a href="{{ url_for('lista_camiones') }}" class="search-button clean-btn">Limpiar</a>
+                        <a href="{{ url_for('lista_camiones') }}" class="search-button clean-btn">✕ Limpiar</a>
                     {% endif %}
                 </form>
             </div>
@@ -77,13 +73,14 @@
             {% endif %}
 
             <div class="table-container">
-                <table class="trucks-table" id="tabla-camiones">
+                <table class="trucks-table">
                     <thead>
                         <tr>
                             <th>Patente</th>
                             <th>Modelo</th>
                             <th>Estado</th>
                             <th>Kilometraje</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -94,19 +91,25 @@
                                 <td>{{ camion.modelo }}</td>
                                 <td>
                                     <span class="estado-badge 
-                                        {% if camion.estado == 'En ruta' or camion.estado == 'activo' %}estado-en-ruta
-                                        {% elif camion.estado == 'En mantenimiento' or camion.estado == 'mantenimiento' %}estado-mantenimiento
+                                        {% if camion.estado == 'En ruta' %}estado-en-ruta
+                                        {% elif camion.estado == 'En mantenimiento' %}estado-mantenimiento
                                         {% elif camion.estado == 'Disponible' %}estado-disponible
                                         {% endif %}">
                                         {{ camion.estado }}
                                     </span>
                                 </td>
                                 <td>{{ "{:,.0f}".format(camion.kilometraje).replace(',', '.') }} km</td>
+                                <td class="acciones">
+                                    <a href="{{ url_for('editar_camion', id=camion.id) }}" class="btn-editar">Editar</a>
+                                    <form method="POST" action="{{ url_for('eliminar_camion', id=camion.id) }}" style="display:inline;">
+                                        <button type="submit" class="btn-eliminar" onclick="return confirm('¿Eliminar este camión?')">Eliminar</button>
+                                    </form>
+                                </td>
                             </tr>
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="4" class="no-results">
+                                <td colspan="5" class="no-results">
                                     No se encontraron camiones para "{{ busqueda }}"
                                 </td>
                             </tr>
@@ -116,8 +119,8 @@
             </div>
 
             <div class="button-container">
-                <a href="/camiones/nuevo" class="btn-agregar">
-                    Agregar Camión
+                <a href="{{ url_for('nuevo_camion') }}" class="btn-agregar">
+                    <i class="fas fa-plus"></i> Agregar Camión
                 </a>
             </div>
         </main>

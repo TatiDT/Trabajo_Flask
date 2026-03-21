@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,29 +7,27 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
-
 <body>
     <div class="dashboard-container">
-
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h2>Hirata</h2>
             </div>
             <nav class="sidebar-nav">
                 <ul>
-                    <li {% if request.path==url_for('lista_camiones') %}class="active" {% endif %}>
+                    <li {% if request.path == url_for('lista_camiones') %}class="active"{% endif %}>
                         <a href="{{ url_for('lista_camiones') }}">
                             <i class="fas fa-truck icon"></i>
                             <span class="text">Camiones</span>
                         </a>
                     </li>
-                    <li {% if request.path==url_for('mantenimiento') %}class="active" {% endif %}>
+                    <li {% if request.path == url_for('mantenimiento') %}class="active"{% endif %}>
                         <a href="{{ url_for('mantenimiento') }}">
                             <i class="fas fa-wrench icon"></i>
-                            <span class="text">Mantenimientos</span>
+                            <span class="text">Mantenimiento</span>
                         </a>
                     </li>
-                    <li {% if request.path==url_for('lista_equipos') %}class="active" {% endif %}>
+                    <li {% if request.path == url_for('lista_equipos') %}class="active"{% endif %}>
                         <a href="{{ url_for('lista_equipos') }}">
                             <i class="fas fa-laptop icon"></i>
                             <span class="text">Equipos Informáticos</span>
@@ -52,69 +49,78 @@
         <main class="main-content">
             <div class="content-header">
                 <h1>Mantenimientos</h1>
-                <p class="subtitle">Registro de mantenimientos de vehículos</p>
+                <p class="subtitle">Registro de mantenimientos de vehículos y equipos</p>
             </div>
-
 
             <div class="search-section">
                 <form method="GET" action="{{ url_for('mantenimiento') }}" class="search-form">
-                    <input type="text" name="buscar" class="search-input"
-                        placeholder="Buscar por fecha, tipo o descripción..." value="{{ busqueda }}">
+                    <input type="text" 
+                           name="buscar" 
+                           class="search-input" 
+                           placeholder="Buscar por fecha, tipo o descripción..."
+                           value="{{ busqueda }}">
                     <button type="submit" class="search-button">Buscar</button>
                     {% if busqueda %}
-                    <a href="{{ url_for('mantenimiento') }}" class="search-button clean-btn">✕ Limpiar</a>
+                        <a href="{{ url_for('mantenimiento') }}" class="search-button clean-btn">✕ Limpiar</a>
                     {% endif %}
                 </form>
             </div>
 
             {% if busqueda %}
-            <div class="result-count">
-                Mostrando {{ mantenimientos|length }} resultado(s) para "{{ busqueda }}"
-            </div>
+                <div class="result-count">
+                    Mostrando {{ mantenimientos|length }} resultado(s) para "{{ busqueda }}"
+                </div>
             {% endif %}
-
 
             <div class="table-container">
                 <table class="trucks-table">
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Equipo</th>
+                            <th>Elemento</th>
                             <th>Fecha Inicio</th>
                             <th>Fecha Fin</th>
                             <th>Descripción</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-    {% if mantenimientos %}
-        {% for m in mantenimientos %}
-        <tr>
-            <td>{{ m.id }}</td>
-            <td>{{ m.elemento_nombre }}</td>  
-            <td>{{ m.fecha_inicio }}</td>
-            <td>{{ m.fecha_fin or 'En curso' }}</td>
-            <td>{{ m.descripcion }}</td>
-        </tr>
-        {% endfor %}
-    {% else %}
-        <tr><td colspan="5" class="no-results">No se encontraron mantenimientos</td></tr>
-    {% endif %}
-</tbody>
+                        {% if mantenimientos %}
+                            {% for m in mantenimientos %}
+                            <tr>
+                                <td>{{ m.id }}</td>
+                                <td>{{ m.elemento_nombre }}</td>
+                                <td>{{ m.fecha_inicio }}</td>
+                                <td>{{ m.fecha_fin or 'En curso' }}</td>
+                                <td>{{ m.descripcion }}</td>
+                                <td class="acciones">
+                                    <a href="{{ url_for('editar_mantenimiento', id=m.id) }}" class="btn-editar">Editar</a>
+                                    <form method="POST" action="{{ url_for('eliminar_mantenimiento', id=m.id) }}" style="display:inline;">
+                                        <button type="submit" class="btn-eliminar" onclick="return confirm('¿Eliminar este mantenimiento?')">Eliminar</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="no-results">
+                                    No se encontraron mantenimientos para "{{ busqueda }}"
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
                 </table>
             </div>
 
-
-
-            <div class="button-container" style="display: flex; gap: 10px; justify-content: flex-end;">
-                <a href="{{ url_for('nuevo_mantenimiento_camion') }}" class="btn-agregar">
-                    <i class="fas fa-truck"></i> Mantenimiento a Camión
+            <div class="button-container" style="justify-content: flex-start; gap: 10px;">
+                <a href="{{ url_for('nuevo_mantenimiento_camion') }}" class="btn-agregar" style="background-color: #8b1538;">
+                    <i class="fas fa-plus"></i> Mantenimiento para Camión
                 </a>
-                <a href="{{ url_for('nuevo_mantenimiento_equipo') }}" class="btn-agregar" style="background: #17a2b8;">
-                    <i class="fas fa-laptop"></i> Mantenimiento a Equipo
+                <a href="{{ url_for('nuevo_mantenimiento_equipo') }}" class="btn-agregar" style="background-color: #2c3e50;">
+                    <i class="fas fa-plus"></i> Mantenimiento para Equipo
                 </a>
             </div>
         </main>
     </div>
 </body>
-
 </html>

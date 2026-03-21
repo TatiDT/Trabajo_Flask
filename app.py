@@ -237,5 +237,174 @@ def nuevo_mantenimiento_equipo():
     
     return render_template('nuevo_mantenimiento_equipo.html', equipos=equipos)
 
+@app.route('/camiones/<int:id>/editar', methods=['GET', 'POST'])
+def editar_camion(id):
+    db = get_db()
+    cursor = db.cursor()
+    if request.method == 'POST':
+        patente = request.form.get('patente', '').strip().upper()
+        modelo = request.form.get('modelo', '').strip()
+        estado = request.form.get('estado', '').strip()
+        kilometraje = request.form.get('kilometraje', '').strip()
+        
+        # Validaciones
+        error = None
+        if not patente or not modelo or not estado or not kilometraje:
+            error = "Todos los campos son obligatorios."
+        else:
+            try:
+                kilometraje = int(kilometraje)
+                if kilometraje < 0:
+                    error = "El kilometraje no puede ser negativo."
+            except ValueError:
+                error = "El kilometraje debe ser un número entero."
+        
+        if error:
+            # Obtener el camión actual para mostrarlo en el formulario
+            cursor.execute("SELECT * FROM camiones WHERE id = %s", (id,))
+            camion = cursor.fetchone()
+            cursor.close()
+            return render_template('nuevo_camion.html', camion=camion, editando=True, error=error)
+        
+        # Actualizar
+        cursor.execute("""
+            UPDATE camiones SET patente=%s, modelo=%s, estado=%s, kilometraje=%s
+            WHERE id=%s
+        """, (patente, modelo, estado, kilometraje, id))
+        db.commit()
+        cursor.close()
+        return redirect(url_for('lista_camiones'))
+    else:
+        cursor.execute("SELECT * FROM camiones WHERE id = %s", (id,))
+        camion = cursor.fetchone()
+        cursor.close()
+        if camion is None:
+            return redirect(url_for('lista_camiones'))
+        return render_template('nuevo_camion.html', camion=camion, editando=True)
+
+@app.route('/camiones/<int:id>/eliminar', methods=['POST'])
+def eliminar_camion(id):
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("DELETE FROM camiones WHERE id = %s", (id,))
+    db.commit()
+    cursor.close()
+    return redirect(url_for('lista_camiones'))
+
+@app.route('/equipos/<int:id>/editar', methods=['GET', 'POST'])
+def editar_equipo(id):
+    db = get_db()
+    cursor = db.cursor()
+    if request.method == 'POST':
+        tipo = request.form.get('tipo', '').strip()
+        modelo = request.form.get('modelo', '').strip()
+        origen = request.form.get('origen', '').strip()
+        error = None
+        if not tipo or not modelo or not origen:
+            error = "Todos los campos son obligatorios."
+        if error:
+            cursor.execute("SELECT * FROM equipos WHERE id = %s", (id,))
+            equipo = cursor.fetchone()
+            cursor.close()
+            return render_template('nuevo_equipo.html', equipo=equipo, editando=True, error=error)
+        cursor.execute("""
+            UPDATE equipos SET tipo=%s, modelo=%s, origen=%s
+            WHERE id=%s
+        """, (tipo, modelo, origen, id))
+        db.commit()
+        cursor.close()
+        return redirect(url_for('lista_equipos'))
+    else:
+        cursor.execute("SELECT * FROM equipos WHERE id = %s", (id,))
+        equipo = cursor.fetchone()
+        cursor.close()
+        if equipo is None:
+            return redirect(url_for('lista_equipos'))
+        return render_template('nuevo_equipo.html', equipo=equipo, editando=True)
+
+@app.route('/equipos/<int:id>/eliminar', methods=['POST'])
+def eliminar_equipo(id):
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("DELETE FROM equipos WHERE id = %s", (id,))
+    db.commit()
+    cursor.close()
+    return redirect(url_for('lista_equipos'))
+
+
+@app.route('/mantenimiento/<int:id>/editar', methods=['GET', 'POST'])
+def editar_mantenimiento(id):
+    db = get_db()
+    cursor = db.cursor()
+    if request.method == 'POST':
+        referencia_id = request.form.get('referencia_id', '').strip()
+        fecha_inicio = request.form.get('fecha_inicio', '').strip()
+        fecha_fin = request.form.get('fecha_fin', '').strip() or None
+        descripcion = request.form.get('descripcion', '').strip()
+        tipo_referencia = request.form.get('tipo_referencia', '')
+        
+        error = None
+        if not referencia_id or not fecha_inicio or not descripcion:
+            error = "Todos los campos excepto fecha fin son obligatorios."
+        elif fecha_fin and fecha_fin < fecha_inicio:
+            error = "La fecha de fin no puede ser anterior a la fecha de inicio."
+        if error:
+            # Obtener el mantenimiento actual y la lista de elementos correspondiente
+            cursor.execute("SELECT * FROM mantenimientos WHERE id = %s", (id,))
+            mantenimiento = cursor.fetchone()
+            # Obtener lista de camiones o equipos según el tipo
+            if tipo_referencia == 'camion':
+                cursor.execute("SELECT id, patente, modelo FROM camiones ORDER BY patente")
+                elementos = cursor.fetchall()
+                template = 'nuevo_mantenimiento_camion.html'
+            else:
+                cursor.execute("SELECT id, tipo, modelo, origen FROM equipos ORDER BY tipo, modelo")
+                elementos = cursor.fetchall()
+                template = 'nuevo_mantenimiento_equipo.html'
+            cursor.close()
+            return render_template(template, 
+                                 elementos=elementos, 
+                                 mantenimiento=mantenimiento, 
+                                 editando=True, 
+                                 error=error)
+        
+        # Actualizar
+        cursor.execute("""
+            UPDATE mantenimientos 
+            SET referencia_id=%s, fecha_inicio=%s, fecha_fin=%s, descripcion=%s
+            WHERE id=%s
+        """, (referencia_id, fecha_inicio, fecha_fin, descripcion, id))
+        db.commit()
+        cursor.close()
+        return redirect(url_for('mantenimiento'))
+    else:
+        cursor.execute("SELECT * FROM mantenimientos WHERE id = %s", (id,))
+        mantenimiento = cursor.fetchone()
+        if mantenimiento is None:
+            return redirect(url_for('mantenimiento'))
+        # Obtener lista de elementos según el tipo
+        if mantenimiento['tipo_referencia'] == 'camion':
+            cursor.execute("SELECT id, patente, modelo FROM camiones ORDER BY patente")
+            elementos = cursor.fetchall()
+            template = 'nuevo_mantenimiento_camion.html'
+        else:
+            cursor.execute("SELECT id, tipo, modelo, origen FROM equipos ORDER BY tipo, modelo")
+            elementos = cursor.fetchall()
+            template = 'nuevo_mantenimiento_equipo.html'
+        cursor.close()
+        return render_template(template, 
+                             elementos=elementos, 
+                             mantenimiento=mantenimiento, 
+                             editando=True)
+
+@app.route('/mantenimiento/<int:id>/eliminar', methods=['POST'])
+def eliminar_mantenimiento(id):
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("DELETE FROM mantenimientos WHERE id = %s", (id,))
+    db.commit()
+    cursor.close()
+    return redirect(url_for('mantenimiento'))
+
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
