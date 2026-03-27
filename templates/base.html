@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hirata - {% block titulo %}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        
+        .alert-bell {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            margin-right: 20px;
+        }
+        .alert-bell i {
+            font-size: 24px;
+            color: #dba718;
+        }
+        .alert-badge {
+            position: absolute;
+            top: -5px;
+            right: -10px;
+            background-color: red;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 12px;
+        }
+        .alert-panel {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 40px;
+            width: 300px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .alert-panel.show {
+            display: block;
+        }
+        .alert-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 12px;
+        }
+        .alert-item .mensaje {
+            font-weight: bold;
+        }
+        .alert-item .fecha {
+            color: #999;
+            font-size: 10px;
+        }
+        .alert-item .marcar-leida {
+            text-align: right;
+        }
+        .alert-item .marcar-leida form {
+            display: inline;
+        }
+        .alert-item .marcar-leida button {
+            background: none;
+            border: none;
+            color: #007bff;
+            cursor: pointer;
+            font-size: 10px;
+        }
+    </style>
+    <script>
+        // Pequeño JS para toggle de la campana
+        function toggleAlertPanel() {
+            var panel = document.getElementById('alertPanel');
+            panel.classList.toggle('show');
+        }
+        
+        window.onclick = function(event) {
+            if (!event.target.closest('.alert-bell')) {
+                var panel = document.getElementById('alertPanel');
+                if (panel && panel.classList.contains('show')) {
+                    panel.classList.remove('show');
+                }
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Hirata</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="{{ url_for('lista_camiones') }}"><i class="fas fa-truck"></i> Camiones</a></li>
+                    <li><a href="{{ url_for('mantenimiento') }}"><i class="fas fa-wrench"></i> Mantenimiento</a></li>
+                    <li><a href="{{ url_for('lista_equipos') }}"><i class="fas fa-laptop"></i> Equipos Informáticos</a></li>
+                    <li><a href="{{ url_for('sensores') }}"><i class="fas fa-microchip"></i> Sensores (Prototipo)</a></li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                <span>Transportes Hirata 2026</span>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-bar" style="display: flex; justify-content: flex-end; align-items: center; padding: 10px; background: #f8f9fa; border-bottom: 1px solid #ddd;">
+                <!-- Campana de alertas -->
+                <div class="alert-bell" onclick="toggleAlertPanel()">
+                    <i class="fas fa-bell"></i>
+                    {% if alertas_no_leidas|length > 0 %}
+                        <span class="alert-badge">{{ alertas_no_leidas|length }}</span>
+                    {% endif %}
+                    <div id="alertPanel" class="alert-panel">
+                        {% if alertas_no_leidas %}
+                            {% for alerta in alertas_no_leidas %}
+                                <div class="alert-item">
+                                    <div class="mensaje">{{ alerta.mensaje }}</div>
+                                    <div class="fecha">{{ alerta.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}</div>
+                                    <div class="marcar-leida">
+                                        <form method="POST" action="{{ url_for('marcar_alerta_leida', id=alerta.id) }}">
+                                            <button type="submit">Marcar como leída</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="alert-item">No hay alertas nuevas</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

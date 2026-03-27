@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block titulo %}Sensores (Prototipo){% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h1>Sensores (Prototipo)</h1>
+    <p class="subtitle">Simulación de sensores y alertas</p>
+</div>
+
+<!-- ========== SECCIÓN 1: KILOMETRAJE ========== -->
+<div class="sensor-section">
+    <h2>Kilometraje (Actualización automática)</h2>
+    <p>El sistema actualiza el kilometraje automáticamente cada 60 segundos. Cuando un camión alcanza 5000 km desde su último mantenimiento, se genera una alerta.</p>
+    <div class="table-container">
+        <table class="trucks-table">
+            <thead>
+                <tr>
+                    <th>Patente</th>
+                    <th>Modelo</th>
+                    <th>Kilometraje actual</th>
+                    <th>Último mantenimiento (km)</th>
+                    <th>Próximo mantenimiento (km)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in camiones if c.estado == 'En ruta' %}
+                <tr>
+                    <td>{{ c.patente }}</td>
+                    <td>{{ c.modelo }}</td>
+                    <td>{{ "{:,.0f}".format(c.kilometraje).replace(',', '.') }} km</td>
+                    <td>{{ "{:,.0f}".format(c.ultimo_mantenimiento_km).replace(',', '.') }} km</td>
+                    <td>{{ "{:,.0f}".format(c.ultimo_mantenimiento_km + 5000).replace(',', '.') }} km</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ========== SECCIÓN 2: UBICACIÓN (GPS) ========== -->
+<div class="sensor-section">
+    <h2>Simulación de GPS</h2>
+    <p>Actualiza la ubicación de un camión. Si la ubicación no está en la lista de zonas permitidas, se generará una alerta.</p>
+    
+    <form method="POST" action="{{ url_for('actualizar_ubicacion') }}" class="inline-form">
+        <div class="form-group">
+            <label for="camion_ubicacion">Camión:</label>
+            <select name="camion_id" id="camion_ubicacion" required>
+                {% for c in camiones %}
+                <option value="{{ c.id }}">{{ c.patente }} - {{ c.modelo }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="ubicacion">Ubicación (ciudad o zona):</label>
+            <input type="text" name="ubicacion" id="ubicacion" placeholder="Ej: Santiago, Valparaíso, Ruta 68" required>
+        </div>
+        <button type="submit" class="btn-guardar">Actualizar ubicación</button>
+    </form>
+
+    <div class="table-container" style="margin-top: 20px;">
+        <table class="trucks-table">
+            <thead>
+                <tr>
+                    <th>Patente</th>
+                    <th>Ubicación actual</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in camiones %}
+                <tr>
+                    <td>{{ c.patente }}</td>
+                    <td>{{ c.ubicacion_actual or 'No registrada' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ========== SECCIÓN 3: TEMPERATURA Y COMBUSTIBLE ========== -->
+<div class="sensor-section">
+    <h2>Temperatura del motor y combustible (solo camiones en ruta)</h2>
+    <p>Simula la temperatura del motor y el combustible gastado. Si la temperatura supera los 95°C, se genera una alerta.</p>
+    
+    <div class="table-container">
+        <table class="trucks-table">
+            <thead>
+                <tr>
+                    <th>Patente</th>
+                    <th>Modelo</th>
+                    <th>Temperatura motor (°C)</th>
+                    <th>Combustible gastado (L)</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in camiones_ruta %}
+                <tr>
+                    <td>{{ c.patente }}</td>
+                    <td>{{ c.modelo }}</td>
+                    <td>{{ c.temperatura_motor or 0 }} °C</td>
+                    <td>{{ c.combustible_usado or 0 }} L</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('actualizar_temperatura') }}" style="display: inline-block;">
+                            <input type="hidden" name="camion_id" value="{{ c.id }}">
+                            <input type="number" name="temperatura" step="0.1" placeholder="Nueva temp" required style="width: 80px;">
+                            <button type="submit" class="btn-editar">Actualizar temp</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('actualizar_combustible') }}" style="display: inline-block; margin-left: 5px;">
+                            <input type="hidden" name="camion_id" value="{{ c.id }}">
+                            <input type="number" name="combustible" step="10" placeholder="Agregar L" required style="width: 80px;">
+                            <button type="submit" class="btn-editar">Agregar combustible</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

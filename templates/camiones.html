@@ -1,129 +1,80 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hirata - Camiones</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-</head>
-<body>
-    <div class="dashboard-container">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>Hirata</h2>
-            </div>
-            <nav class="sidebar-nav">
-                <ul>
-                    <li {% if request.path == url_for('lista_camiones') %}class="active"{% endif %}>
-                        <a href="{{ url_for('lista_camiones') }}">
-                            <i class="fas fa-truck icon"></i>
-                            <span class="text">Camiones</span>
-                        </a>
-                    </li>
-                    <li {% if request.path == url_for('mantenimiento') %}class="active"{% endif %}>
-                        <a href="{{ url_for('mantenimiento') }}">
-                            <i class="fas fa-wrench icon"></i>
-                            <span class="text">Mantenimiento</span>
-                        </a>
-                    </li>
-                    <li {% if request.path == url_for('lista_equipos') %}class="active"{% endif %}>
-                        <a href="{{ url_for('lista_equipos') }}">
-                            <i class="fas fa-laptop icon"></i>
-                            <span class="text">Equipos Informáticos</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#">
-                            <i class="fas fa-microchip icon"></i>
-                            <span class="text">Sensores (Prototipo)</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-            <div class="sidebar-footer">
-                <span>Transportes Hirata 2026</span>
-            </div>
-        </aside>
+{% extends "base.html" %}
+{% block titulo %}Camiones{% endblock %}
+{% block content %}
+<div class="content-header">
+    <h1>Camiones</h1>
+    <p class="subtitle">Gestiona todos los vehículos de la flota</p>
+</div>
 
-        <main class="main-content">
-            <div class="content-header">
-                <h1>Camiones</h1>
-                <p class="subtitle">Gestiona todos los vehículos de la flota</p>
-            </div>
+<div class="search-section">
+    <form method="GET" action="{{ url_for('lista_camiones') }}" class="search-form">
+        <input type="text" 
+               name="buscar" 
+               class="search-input" 
+               placeholder="Buscar por placa o modelo..."
+               value="{{ busqueda }}">
+        <button type="submit" class="search-button">Buscar</button>
+        {% if busqueda %}
+            <a href="{{ url_for('lista_camiones') }}" class="search-button clean-btn">✕ Limpiar</a>
+        {% endif %}
+    </form>
+</div>
 
-            <div class="search-section">
-                <form method="GET" action="{{ url_for('lista_camiones') }}" class="search-form">
-                    <input type="text" 
-                           name="buscar" 
-                           class="search-input" 
-                           placeholder="Buscar por placa o modelo..."
-                           value="{{ busqueda }}">
-                    <button type="submit" class="search-button">Buscar</button>
-                    {% if busqueda %}
-                        <a href="{{ url_for('lista_camiones') }}" class="search-button clean-btn">✕ Limpiar</a>
-                    {% endif %}
-                </form>
-            </div>
-
-            {% if busqueda %}
-                <div class="result-count">
-                    Mostrando {{ camiones|length }} resultado(s) para "{{ busqueda }}"
-                </div>
-            {% endif %}
-
-            <div class="table-container">
-                <table class="trucks-table">
-                    <thead>
-                        <tr>
-                            <th>Patente</th>
-                            <th>Modelo</th>
-                            <th>Estado</th>
-                            <th>Kilometraje</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if camiones %}
-                            {% for camion in camiones %}
-                            <tr>
-                                <td class="placa">{{ camion.patente }}</td>
-                                <td>{{ camion.modelo }}</td>
-                                <td>
-                                    <span class="estado-badge 
-                                        {% if camion.estado == 'En ruta' %}estado-en-ruta
-                                        {% elif camion.estado == 'En mantenimiento' %}estado-mantenimiento
-                                        {% elif camion.estado == 'Disponible' %}estado-disponible
-                                        {% endif %}">
-                                        {{ camion.estado }}
-                                    </span>
-                                </td>
-                                <td>{{ "{:,.0f}".format(camion.kilometraje).replace(',', '.') }} km</td>
-                                <td class="acciones">
-                                    <a href="{{ url_for('editar_camion', id=camion.id) }}" class="btn-editar">Editar</a>
-                                    <form method="POST" action="{{ url_for('eliminar_camion', id=camion.id) }}" style="display:inline;">
-                                        <button type="submit" class="btn-eliminar" onclick="return confirm('¿Eliminar este camión?')">Eliminar</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr>
-                                <td colspan="5" class="no-results">
-                                    No se encontraron camiones para "{{ busqueda }}"
-                                </td>
-                            </tr>
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="button-container">
-                <a href="{{ url_for('nuevo_camion') }}" class="btn-agregar">
-                    <i class="fas fa-plus"></i> Agregar Camión
-                </a>
-            </div>
-        </main>
+{% if busqueda %}
+    <div class="result-count">
+        Mostrando {{ camiones|length }} resultado(s) para "{{ busqueda }}"
     </div>
-</body>
-</html>
+{% endif %}
+
+<div class="table-container">
+    <table class="trucks-table">
+        <thead>
+            <tr>
+                <th>Patente</th>
+                <th>Modelo</th>
+                <th>Estado</th>
+                <th>Kilometraje</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if camiones %}
+                {% for camion in camiones %}
+                <tr>
+                    <td class="placa">{{ camion.patente }}</td>
+                    <td>{{ camion.modelo }}</td>
+                    <td>
+                        <span class="estado-badge 
+                            {% if camion.estado == 'En ruta' %}estado-en-ruta
+                            {% elif camion.estado == 'En mantenimiento' %}estado-mantenimiento
+                            {% elif camion.estado == 'Disponible' %}estado-disponible
+                            {% endif %}">
+                            {{ camion.estado }}
+                        </span>
+                    </td>
+                    <td>{{ "{:,.0f}".format(camion.kilometraje).replace(',', '.') }} km</td>
+                    <td class="acciones">
+                        <a href="{{ url_for('editar_camion', id=camion.id) }}" class="btn-editar">Editar</a>
+                        <form method="POST" action="{{ url_for('eliminar_camion', id=camion.id) }}" style="display:inline;">
+                            <button type="submit" class="btn-eliminar" onclick="return confirm('¿Eliminar este camión?')">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="5" class="no-results">
+                        No se encontraron camiones para "{{ busqueda }}"
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<div class="button-container">
+    <a href="{{ url_for('nuevo_camion') }}" class="btn-agregar">
+        <i class="fas fa-plus"></i> Agregar Camión
+    </a>
+</div>
+{% endblock %}

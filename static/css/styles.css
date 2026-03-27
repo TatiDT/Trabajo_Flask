@@ -556,3 +556,22 @@ body {
 .btn-eliminar:hover {
     background-color: #c82333;
 }
+
+.sensor-section {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.sensor-section h2 {
+    margin-bottom: 15px;
+    color: #333;
+}
+.inline-form .form-group {
+    display: inline-block;
+    margin-right: 15px;
+}
+.inline-form {
+    margin-bottom: 20px;
+}

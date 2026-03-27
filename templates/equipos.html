@@ -1,125 +1,72 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hirata - Equipos Informáticos</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-</head>
-<body>
-    <div class="dashboard-container">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>Hirata</h2>
-            </div>
-            <nav class="sidebar-nav">
-                <ul>
-                    <li {% if request.path == url_for('lista_camiones') %}class="active"{% endif %}>
-                        <a href="{{ url_for('lista_camiones') }}">
-                            <i class="fas fa-truck icon"></i>
-                            <span class="text">Camiones</span>
-                        </a>
-                    </li>
-                    <li {% if request.path == url_for('mantenimiento') %}class="active"{% endif %}>
-                        <a href="{{ url_for('mantenimiento') }}">
-                            <i class="fas fa-wrench icon"></i>
-                            <span class="text">Mantenimiento</span>
-                        </a>
-                    </li>
-                    <li {% if request.path == url_for('lista_equipos') %}class="active"{% endif %}>
-                        <a href="{{ url_for('lista_equipos') }}">
-                            <i class="fas fa-laptop icon"></i>
-                            <span class="text">Equipos Informáticos</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#">
-                            <i class="fas fa-microchip icon"></i>
-                            <span class="text">Sensores (Prototipo)</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-            <div class="sidebar-footer">
-                <span>Transportes Hirata 2026</span>
-            </div>
-        </aside>
+{% extends "base.html" %}
+{% block titulo %}Equipos Informáticos{% endblock %}
+{% block content %}
+<div class="content-header">
+    <h1>Equipos Informáticos</h1>
+    <p class="subtitle">Gestión de celulares y computadores</p>
+</div>
 
-        <main class="main-content">
-            <div class="content-header">
-                <h1>Equipos Informáticos</h1>
-                <p class="subtitle">Gestión de celulares y computadores</p>
-            </div>
+<div class="search-section">
+    <form method="GET" action="{{ url_for('lista_equipos') }}" class="search-form">
+        <input type="text" name="buscar" class="search-input" placeholder="Buscar por tipo, modelo u origen..." value="{{ busqueda }}">
+        <button type="submit" class="search-button">Buscar</button>
+        {% if busqueda %}
+            <a href="{{ url_for('lista_equipos') }}" class="search-button clean-btn">✕ Limpiar</a>
+        {% endif %}
+    </form>
+</div>
 
-            <div class="search-section">
-                <form method="GET" action="{{ url_for('lista_equipos') }}" class="search-form">
-                    <input type="text" 
-                           name="buscar" 
-                           class="search-input" 
-                           placeholder="Buscar por tipo, modelo u origen..."
-                           value="{{ busqueda }}">
-                    <button type="submit" class="search-button">Buscar</button>
-                    {% if busqueda %}
-                        <a href="{{ url_for('lista_equipos') }}" class="search-button clean-btn">✕ Limpiar</a>
-                    {% endif %}
-                </form>
-            </div>
-
-            {% if busqueda %}
-                <div class="result-count">
-                    Mostrando {{ equipos|length }} resultado(s) para "{{ busqueda }}"
-                </div>
-            {% endif %}
-
-            <div class="table-container">
-                <table class="trucks-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Tipo</th>
-                            <th>Modelo</th>
-                            <th>Origen</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if equipos %}
-                            {% for eq in equipos %}
-                            <tr>
-                                <td>{{ eq.id }}</td>
-                                <td>{{ eq.tipo }}</td>
-                                <td>{{ eq.modelo }}</td>
-                                <td>
-                                    <span class="origen-badge {% if eq.origen == 'oficina' %}origen-oficina{% else %}origen-flota{% endif %}">
-                                        {{ eq.origen|capitalize }}
-                                    </span>
-                                </td>
-                                <td class="acciones">
-                                    <a href="{{ url_for('editar_equipo', id=eq.id) }}" class="btn-editar">Editar</a>
-                                    <form method="POST" action="{{ url_for('eliminar_equipo', id=eq.id) }}" style="display:inline;">
-                                        <button type="submit" class="btn-eliminar" onclick="return confirm('¿Eliminar este equipo?')">Eliminar</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr>
-                                <td colspan="5" class="no-results">
-                                    No se encontraron equipos para "{{ busqueda }}"
-                                </td>
-                            </tr>
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="button-container">
-                <a href="{{ url_for('nuevo_equipo') }}" class="btn-agregar">
-                    <i class="fas fa-plus"></i> Agregar Equipo
-                </a>
-            </div>
-        </main>
+{% if busqueda %}
+    <div class="result-count">
+        Mostrando {{ equipos|length }} resultado(s) para "{{ busqueda }}"
     </div>
-</body>
-</html>
+{% endif %}
+
+<div class="table-container">
+    <table class="trucks-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Tipo</th>
+                <th>Modelo</th>
+                <th>Origen</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if equipos %}
+                {% for eq in equipos %}
+                <tr>
+                    <td>{{ eq.id }}</td>
+                    <td>{{ eq.tipo }}</td>
+                    <td>{{ eq.modelo }}</td>
+                    <td>
+                        <span class="origen-badge {% if eq.origen == 'oficina' %}origen-oficina{% else %}origen-flota{% endif %}">
+                            {{ eq.origen|capitalize }}
+                        </span>
+                    </td>
+                    <td class="acciones">
+                        <a href="{{ url_for('editar_equipo', id=eq.id) }}" class="btn-editar">Editar</a>
+                        <form method="POST" action="{{ url_for('eliminar_equipo', id=eq.id) }}" style="display:inline;">
+                            <button type="submit" class="btn-eliminar" onclick="return confirm('¿Eliminar este equipo?')">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="5" class="no-results">
+                        No se encontraron equipos para "{{ busqueda }}"
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<div class="button-container">
+    <a href="{{ url_for('nuevo_equipo') }}" class="btn-agregar">
+        <i class="fas fa-plus"></i> Agregar Equipo
+    </a>
+</div>
+{% endblock %}

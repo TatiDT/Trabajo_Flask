@@ -1,7 +1,14 @@
 ﻿import pymysql
 from flask import Flask, render_template, request, redirect, url_for, g
 
+from apscheduler.schedulers.background import BackgroundScheduler
+import random
+import atexit
+
 app = Flask(__name__)
+
+scheduler = BackgroundScheduler() 
+
 
 app.config['DB_HOST'] = 'localhost'
 app.config['DB_USER'] = 'root'
@@ -19,6 +26,88 @@ def get_db():
             cursorclass=pymysql.cursors.DictCursor
         )
     return g.db
+
+@app.context_processor
+def inject_alertas():
+    try:
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute("""
+            SELECT a.*, c.patente 
+            FROM alertas a
+            JOIN camiones c ON a.camion_id = c.id
+            WHERE a.leida = 0
+            ORDER BY a.fecha_creacion DESC
+        """)
+        alertas = cursor.fetchall()
+        cursor.close()
+        return dict(alertas_no_leidas=alertas)
+    except:
+        return dict(alertas_no_leidas=[])
+
+
+def crear_alerta(camion_id, tipo, mensaje, datos_adicionales=None):
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("""
+        INSERT INTO alertas (camion_id, tipo, mensaje, datos_adicionales)
+        VALUES (%s, %s, %s, %s)
+    """, (camion_id, tipo, mensaje, datos_adicionales))
+    db.commit()
+    cursor.close()
+
+def verificar_alerta_mantenimiento(camion):
+    """camion es un diccionario con los datos de la BD"""
+    km_actual = camion['kilometraje']
+    ultimo_mantenimiento = camion['ultimo_mantenimiento_km']
+    if km_actual - ultimo_mantenimiento >= 5000:
+        
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute("""
+            SELECT id FROM alertas 
+            WHERE camion_id=%s AND tipo='mantenimiento' AND leida=0
+        """, (camion['id'],))
+        existe = cursor.fetchone()
+        cursor.close()
+        if not existe:
+            mensaje = f"El camión {camion['patente']} ha alcanzado {km_actual} km y requiere mantenimiento preventivo."   #evitar alertas repetidas 
+            crear_alerta(camion['id'], 'mantenimiento', mensaje)
+
+def actualizar_kilometraje_automatico():
+    """Función que se ejecuta periódicamente para aumentar el kilometraje de los camiones."""
+    with app.app_context():
+        db = get_db()
+        cursor = db.cursor()
+        
+        
+        cursor.execute("SELECT id, kilometraje, ultimo_mantenimiento_km, patente FROM camiones WHERE estado = 'En ruta'")
+        camiones = cursor.fetchall()
+        
+        for camion in camiones:
+            
+            incremento = random.randint(50, 200)
+            nuevo_km = camion['kilometraje'] + incremento
+            
+            
+            cursor.execute("UPDATE camiones SET kilometraje = %s WHERE id = %s", (nuevo_km, camion['id']))
+            
+            
+            camion_actualizado = camion.copy()
+            camion_actualizado['kilometraje'] = nuevo_km
+            verificar_alerta_mantenimiento(camion_actualizado)
+        
+        db.commit()
+        cursor.close()
+
+
+scheduler.add_job(func=actualizar_kilometraje_automatico, trigger="interval", seconds=5)
+scheduler.start()
+
+
+atexit.register(lambda: scheduler.shutdown())
+            
+
 
 @app.teardown_appcontext
 def close_db(error):
@@ -73,10 +162,10 @@ def nuevo_camion():
         
         db = get_db()
         cursor = db.cursor()
-        cursor.execute(
-            "INSERT INTO camiones (patente, modelo, estado, kilometraje) VALUES (%s, %s, %s, %s)",
-            (patente, modelo, estado, kilometraje)
-        )
+        cursor.execute("""
+            INSERT INTO camiones (patente, modelo, estado, kilometraje, ultimo_mantenimiento_km)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (patente, modelo, estado, kilometraje, kilometraje))  
         db.commit()
         cursor.close()
         return redirect(url_for('lista_camiones'))
@@ -362,11 +451,7 @@ def editar_mantenimiento(id):
                 elementos = cursor.fetchall()
                 template = 'nuevo_mantenimiento_equipo.html'
             cursor.close()
-            return render_template(template, 
-                                 elementos=elementos, 
-                                 mantenimiento=mantenimiento, 
-                                 editando=True, 
-                                 error=error)
+            return render_template(template, elementos=elementos, mantenimiento=mantenimiento, editando=True, error=error)
         
         # Actualizar
         cursor.execute("""
@@ -392,10 +477,7 @@ def editar_mantenimiento(id):
             elementos = cursor.fetchall()
             template = 'nuevo_mantenimiento_equipo.html'
         cursor.close()
-        return render_template(template, 
-                             elementos=elementos, 
-                             mantenimiento=mantenimiento, 
-                             editando=True)
+        return render_template(template, elementos=elementos, mantenimiento=mantenimiento, editando=True)
 
 @app.route('/mantenimiento/<int:id>/eliminar', methods=['POST'])
 def eliminar_mantenimiento(id):
@@ -405,6 +487,102 @@ def eliminar_mantenimiento(id):
     db.commit()
     cursor.close()
     return redirect(url_for('mantenimiento'))
+
+@app.route('/alerta/<int:id>/leer', methods=['POST'])
+def marcar_alerta_leida(id):
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("UPDATE alertas SET leida = 1 WHERE id = %s", (id,))
+    db.commit()
+    cursor.close()
+    
+    return redirect(request.referrer or url_for('lista_camiones'))
+
+@app.route('/sensores')
+def sensores():
+    db = get_db()
+    cursor = db.cursor()
+    
+    
+    cursor.execute("SELECT * FROM camiones")
+    camiones = cursor.fetchall()
+    
+    cursor.execute("SELECT * FROM camiones WHERE estado = 'En ruta'")
+    camiones_ruta = cursor.fetchall()
+    
+    cursor.close()
+    return render_template('sensores.html', camiones=camiones, camiones_ruta=camiones_ruta)
+
+
+ZONAS_PERMITIDAS = ['Santiago', 'Valparaíso', 'Concepción', 'Ruta 68', 'Ruta 5', 'Viña del Mar']
+
+@app.route('/actualizar_ubicacion', methods=['POST'])
+def actualizar_ubicacion():
+    camion_id = request.form.get('camion_id')
+    nueva_ubicacion = request.form.get('ubicacion', '').strip()
+    
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("UPDATE camiones SET ubicacion_actual = %s WHERE id = %s", (nueva_ubicacion, camion_id))
+    
+    cursor.execute("SELECT * FROM camiones WHERE id = %s", (camion_id,))
+    camion = cursor.fetchone()
+    
+    
+    if nueva_ubicacion not in ZONAS_PERMITIDAS:
+        mensaje = f"El camión {camion['patente']} salió de la zona permitida (ubicación: {nueva_ubicacion})"
+        crear_alerta(camion_id, 'ubicacion', mensaje, nueva_ubicacion)
+    
+    db.commit()
+    cursor.close()
+    return redirect(url_for('sensores'))
+
+@app.route('/actualizar_temperatura', methods=['POST'])
+def actualizar_temperatura():
+    camion_id = request.form.get('camion_id')
+    nueva_temp = request.form.get('temperatura', '').strip()
+    
+    try:
+        nueva_temp = float(nueva_temp)
+    except ValueError:
+        return redirect(url_for('sensores'))
+    
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("UPDATE camiones SET temperatura_motor = %s WHERE id = %s", (nueva_temp, camion_id))
+    
+    
+    cursor.execute("SELECT * FROM camiones WHERE id = %s", (camion_id,))
+    camion = cursor.fetchone()
+    
+    
+    if nueva_temp >= 95:
+        mensaje = f"El camión {camion['patente']} tiene temperatura crítica de motor: {nueva_temp}°C"
+        crear_alerta(camion_id, 'temperatura', mensaje, str(nueva_temp))
+    
+    db.commit()
+    cursor.close()
+    return redirect(url_for('sensores'))
+
+@app.route('/actualizar_combustible', methods=['POST'])
+def actualizar_combustible():
+    camion_id = request.form.get('camion_id')
+    litros = request.form.get('combustible', '').strip()
+    
+    try:
+        litros = float(litros)
+    except ValueError:
+        return redirect(url_for('sensores'))
+    
+    db = get_db()
+    cursor = db.cursor()
+    
+    cursor.execute("UPDATE camiones SET combustible_usado = COALESCE(combustible_usado,0) + %s WHERE id = %s", (litros, camion_id))
+    db.commit()
+    cursor.close()
+    return redirect(url_for('sensores'))
+
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
