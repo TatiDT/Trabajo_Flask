@@ -192,10 +192,26 @@ def actualizar_combustible():
     db = get_db()
     cursor = db.cursor()
     
-    cursor.execute("UPDATE camiones SET combustible_usado = COALESCE(combustible_usado,0) + %s WHERE id = %s", (litros, camion_id))
+    
+    cursor.execute("""
+        UPDATE camiones 
+        SET combustible_usado = COALESCE(combustible_usado,0) + %s 
+        WHERE id = %s
+    """, (litros, camion_id))
+    
+    
+    cursor.execute("SELECT * FROM camiones WHERE id = %s", (camion_id,))
+    camion = cursor.fetchone()
+    
+    
+    if litros > 30:
+        mensaje = f"El camión {camion['patente']} registró un consumo elevado de combustible: {litros} L"
+        crear_alerta(camion_id, 'combustible', mensaje, str(litros))
+    
     db.commit()
     cursor.close()
     return redirect(url_for('sensores'))
+   
 
 
 @app.route('/')

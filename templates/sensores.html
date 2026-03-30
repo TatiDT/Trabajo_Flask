@@ -27,9 +27,9 @@
                 <tr>
                     <td>{{ c.patente }}</td>
                     <td>{{ c.modelo }}</td>
-                    <td>{{ "{:,.0f}".format(c.kilometraje).replace(',', '.') }} km</td>
-                    <td>{{ "{:,.0f}".format(c.ultimo_mantenimiento_km).replace(',', '.') }} km</td>
-                    <td>{{ "{:,.0f}".format(c.ultimo_mantenimiento_km + 5000).replace(',', '.') }} km</td>
+                    <td>{{ "{:,.0f}".format(c.kilometraje or 0).replace(',', '.') }} km</td>
+                    <td>{{ "{:,.0f}".format(c.ultimo_mantenimiento_km or 0).replace(',', '.') }} km</td>
+                    <td>{{ "{:,.0f}".format((c.ultimo_mantenimiento_km or 0) + 5000).replace(',', '.') }} km</td>
                 </tr>
                 {% endfor %}
             </tbody>

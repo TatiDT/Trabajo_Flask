@@ -61,11 +61,13 @@
                     <select name="referencia_id" id="referencia_id">
                         <option value="">-- Seleccione --</option>
                         {% for c in elementos %}
-                        <option value="{{ c.id }}" {% if request.form.referencia_id==c.id|string %}selected{% endif %}>
+                        <option value="{{ c.id }}" {% if (request.form.get('referencia_id')|int==c.id) or (mantenimiento
+                            and mantenimiento.referencia_id==c.id) %} selected {% endif %}>
                             {{ c.patente }} - {{ c.modelo }}
                         </option>
                         {% endfor %}
                     </select>
+
                 </div>
 
                 <div class="form-group">
