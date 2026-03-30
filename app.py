@@ -39,81 +39,164 @@ def inject_alertas():
             WHERE a.leida = 0
             ORDER BY a.fecha_creacion DESC
         """)
-        alertas = cursor.fetchall()
+        alertas = cursor.fetchall()  #fetchall recoge todas las filas que resultan de la consulta y las devuelve como una lista de diccionarios (gracias a DictCursor)
         cursor.close()
-        return dict(alertas_no_leidas=alertas)
+        return dict(alertas_no_leidas=alertas) #DEBE retornar un diccionario con la clave 'alertas_no_leidas' para que esté disponible en todas las plantillas como variable global
     except:
         return dict(alertas_no_leidas=[])
 
 
 def crear_alerta(camion_id, tipo, mensaje, datos_adicionales=None):
-    db = get_db()
+    db= get_db()
     cursor = db.cursor()
-    cursor.execute("""
-        INSERT INTO alertas (camion_id, tipo, mensaje, datos_adicionales)
-        VALUES (%s, %s, %s, %s)
-    """, (camion_id, tipo, mensaje, datos_adicionales))
+    query = """ INSERT INTO alertas (camion_id, tipo, mensaje, datos_adicionales) VALUES (%s, %s, %s, %s) """
+    cursor.execute(query, (camion_id, tipo, mensaje, datos_adicionales))
     db.commit()
     cursor.close()
 
 def verificar_alerta_mantenimiento(camion):
-    """camion es un diccionario con los datos de la BD"""
     km_actual = camion['kilometraje']
     ultimo_mantenimiento = camion['ultimo_mantenimiento_km']
-    if km_actual - ultimo_mantenimiento >= 5000:
-        
+    necesita_mantenimiento = km_actual - ultimo_mantenimiento >= 5000
+    if necesita_mantenimiento:
         db = get_db()
         cursor = db.cursor()
-        cursor.execute("""
-            SELECT id FROM alertas 
-            WHERE camion_id=%s AND tipo='mantenimiento' AND leida=0
-        """, (camion['id'],))
-        existe = cursor.fetchone()
+        cursor.execute("""SELECT id FROM alertas WHERE camion_id=%s AND tipo='mantenimiento' AND leida=0""", (camion['id'],))
+        
+        existe = cursor.fetchone()  #fetchone pide cursor que recoja solo la primera fila luego se detiene
         cursor.close()
         if not existe:
-            mensaje = f"El camión {camion['patente']} ha alcanzado {km_actual} km y requiere mantenimiento preventivo."   #evitar alertas repetidas 
+            mensaje = f"El camión {camion['patente']} ha alcanzado {km_actual} km y requiere mantenimiento preventivo."
             crear_alerta(camion['id'], 'mantenimiento', mensaje)
 
+
 def actualizar_kilometraje_automatico():
-    """Función que se ejecuta periódicamente para aumentar el kilometraje de los camiones."""
     with app.app_context():
-        db = get_db()
+        db= get_db()
         cursor = db.cursor()
-        
-        
-        cursor.execute("SELECT id, kilometraje, ultimo_mantenimiento_km, patente FROM camiones WHERE estado = 'En ruta'")
+        cursor.execute("""
+            SELECT id, kilometraje, ultimo_mantenimiento_km, patente 
+            FROM camiones WHERE estado = 'En ruta'
+        """)
         camiones = cursor.fetchall()
-        
+
         for camion in camiones:
-            
             incremento = random.randint(50, 200)
             nuevo_km = camion['kilometraje'] + incremento
-            
-            
             cursor.execute("UPDATE camiones SET kilometraje = %s WHERE id = %s", (nuevo_km, camion['id']))
-            
-            
-            camion_actualizado = camion.copy()
-            camion_actualizado['kilometraje'] = nuevo_km
-            verificar_alerta_mantenimiento(camion_actualizado)
-        
+            verificar_alerta_mantenimiento(camion)
         db.commit()
         cursor.close()
+    
 
 
+def apagar_scheduler():
+    scheduler.shutdown()
+
+atexit.register(apagar_scheduler)
 scheduler.add_job(func=actualizar_kilometraje_automatico, trigger="interval", seconds=5)
 scheduler.start()
-
-
-atexit.register(lambda: scheduler.shutdown())
-            
-
 
 @app.teardown_appcontext
 def close_db(error):
     db = g.pop('db', None)
     if db is not None and not db._closed:
         db.close()
+
+@app.route('/alerta/<int:id>/leer', methods=['POST'])
+def marcar_alerta_leida(id):
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("UPDATE alertas SET leida = 1 WHERE id = %s", (id,))
+    db.commit()
+    cursor.close()
+    
+    return redirect(request.referrer or url_for('lista_camiones'))
+
+@app.route('/sensores')
+def sensores():
+    db = get_db()
+    cursor = db.cursor()
+    
+    
+    cursor.execute("SELECT * FROM camiones")
+    camiones = cursor.fetchall()
+    
+    cursor.execute("SELECT * FROM camiones WHERE estado = 'En ruta'")
+    camiones_ruta = cursor.fetchall()
+    
+    cursor.close()
+    return render_template('sensores.html', camiones=camiones, camiones_ruta=camiones_ruta)
+
+
+ZONAS_PERMITIDAS = ['Santiago', 'Valparaíso', 'Concepción', 'Ruta 68', 'Ruta 5', 'Viña del Mar']
+
+@app.route('/actualizar_ubicacion', methods=['POST'])
+def actualizar_ubicacion():
+    camion_id = request.form.get('camion_id')
+    nueva_ubicacion = request.form.get('ubicacion', '').strip()
+    
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("UPDATE camiones SET ubicacion_actual = %s WHERE id = %s", (nueva_ubicacion, camion_id))
+    
+    cursor.execute("SELECT * FROM camiones WHERE id = %s", (camion_id,))
+    camion = cursor.fetchone()
+    
+    
+    if nueva_ubicacion not in ZONAS_PERMITIDAS:
+        mensaje = f"El camión {camion['patente']} salió de la zona permitida (ubicación: {nueva_ubicacion})"
+        crear_alerta(camion_id, 'ubicacion', mensaje, nueva_ubicacion)
+    
+    db.commit()
+    cursor.close()
+    return redirect(url_for('sensores'))
+
+@app.route('/actualizar_temperatura', methods=['POST'])
+def actualizar_temperatura():
+    camion_id = request.form.get('camion_id') #guarda el dato de la plantilla html que se llama camion_id (que es un input hidden) para saber a qué camión actualizarle la temperatura
+    nueva_temp = request.form.get('temperatura', '').strip() #strip() para eliminar espacios antes o después del número, por si el usuario los ingresa sin querer. Si no se ingresa nada, se guarda como cadena vacía '' y luego el try except lo detecta como error de conversión a float y redirige sin actualizar nada. Esto evita que se guarde un valor no numérico en la base de datos.
+    
+    try:
+        nueva_temp = float(nueva_temp)
+    except ValueError:
+        return redirect(url_for('sensores'))
+    
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("UPDATE camiones SET temperatura_motor = %s WHERE id = %s", (nueva_temp, camion_id))
+    
+    
+    cursor.execute("SELECT * FROM camiones WHERE id = %s", (camion_id,))
+    camion = cursor.fetchone()
+    
+    
+    if nueva_temp >= 95:
+        mensaje = f"El camión {camion['patente']} tiene temperatura critica: {nueva_temp}°C"
+        crear_alerta(camion_id, 'temperatura', mensaje, str(nueva_temp))
+    
+    db.commit()
+    cursor.close()
+    return redirect(url_for('sensores'))
+
+@app.route('/actualizar_combustible', methods=['POST'])
+def actualizar_combustible():
+    camion_id = request.form.get('camion_id')
+    litros = request.form.get('combustible', '').strip()
+    
+    try:
+        litros = float(litros)
+    except ValueError:
+        return redirect(url_for('sensores'))
+    
+    db = get_db()
+    cursor = db.cursor()
+    
+    cursor.execute("UPDATE camiones SET combustible_usado = COALESCE(combustible_usado,0) + %s WHERE id = %s", (litros, camion_id))
+    db.commit()
+    cursor.close()
+    return redirect(url_for('sensores'))
+
 
 @app.route('/')
 def index():
@@ -420,64 +503,69 @@ def eliminar_equipo(id):
     cursor.close()
     return redirect(url_for('lista_equipos'))
 
-
 @app.route('/mantenimiento/<int:id>/editar', methods=['GET', 'POST'])
 def editar_mantenimiento(id):
     db = get_db()
     cursor = db.cursor()
+
+    
+    cursor.execute("SELECT * FROM mantenimientos WHERE id = %s", (id,))
+    mantenimiento = cursor.fetchone()
+
+    if mantenimiento is None:
+        cursor.close()
+        return redirect(url_for('mantenimiento'))
+
     if request.method == 'POST':
         referencia_id = request.form.get('referencia_id', '').strip()
         fecha_inicio = request.form.get('fecha_inicio', '').strip()
         fecha_fin = request.form.get('fecha_fin', '').strip() or None
         descripcion = request.form.get('descripcion', '').strip()
         tipo_referencia = request.form.get('tipo_referencia', '')
-        
+
         error = None
+
         if not referencia_id or not fecha_inicio or not descripcion:
             error = "Todos los campos excepto fecha fin son obligatorios."
         elif fecha_fin and fecha_fin < fecha_inicio:
             error = "La fecha de fin no puede ser anterior a la fecha de inicio."
-        if error:
-            # Obtener el mantenimiento actual y la lista de elementos correspondiente
-            cursor.execute("SELECT * FROM mantenimientos WHERE id = %s", (id,))
-            mantenimiento = cursor.fetchone()
-            # Obtener lista de camiones o equipos según el tipo
-            if tipo_referencia == 'camion':
-                cursor.execute("SELECT id, patente, modelo FROM camiones ORDER BY patente")
-                elementos = cursor.fetchall()
-                template = 'nuevo_mantenimiento_camion.html'
-            else:
-                cursor.execute("SELECT id, tipo, modelo, origen FROM equipos ORDER BY tipo, modelo")
-                elementos = cursor.fetchall()
-                template = 'nuevo_mantenimiento_equipo.html'
+
+        if not error:
+            cursor.execute("""
+                UPDATE mantenimientos 
+                SET referencia_id=%s, fecha_inicio=%s, fecha_fin=%s, descripcion=%s
+                WHERE id=%s
+            """, (referencia_id, fecha_inicio, fecha_fin, descripcion, id))
+
+            db.commit()
             cursor.close()
-            return render_template(template, elementos=elementos, mantenimiento=mantenimiento, editando=True, error=error)
-        
-        # Actualizar
-        cursor.execute("""
-            UPDATE mantenimientos 
-            SET referencia_id=%s, fecha_inicio=%s, fecha_fin=%s, descripcion=%s
-            WHERE id=%s
-        """, (referencia_id, fecha_inicio, fecha_fin, descripcion, id))
-        db.commit()
-        cursor.close()
-        return redirect(url_for('mantenimiento'))
-    else:
-        cursor.execute("SELECT * FROM mantenimientos WHERE id = %s", (id,))
-        mantenimiento = cursor.fetchone()
-        if mantenimiento is None:
             return redirect(url_for('mantenimiento'))
-        # Obtener lista de elementos según el tipo
-        if mantenimiento['tipo_referencia'] == 'camion':
-            cursor.execute("SELECT id, patente, modelo FROM camiones ORDER BY patente")
-            elementos = cursor.fetchall()
-            template = 'nuevo_mantenimiento_camion.html'
-        else:
-            cursor.execute("SELECT id, tipo, modelo, origen FROM equipos ORDER BY tipo, modelo")
-            elementos = cursor.fetchall()
-            template = 'nuevo_mantenimiento_equipo.html'
-        cursor.close()
-        return render_template(template, elementos=elementos, mantenimiento=mantenimiento, editando=True)
+
+        tipo = tipo_referencia
+
+    else:
+        
+        tipo = mantenimiento['tipo_referencia']
+
+    
+    if tipo == 'camion':
+        cursor.execute("SELECT id, patente, modelo FROM camiones ORDER BY patente")
+        elementos = cursor.fetchall()
+        template = 'nuevo_mantenimiento_camion.html'
+    else:
+        cursor.execute("SELECT id, tipo, modelo, origen FROM equipos ORDER BY tipo, modelo")
+        elementos = cursor.fetchall()
+        template = 'nuevo_mantenimiento_equipo.html'
+
+    cursor.close()
+
+    return render_template(
+        template,
+        elementos=elementos,
+        mantenimiento=mantenimiento,
+        editando=True,
+        error=error if request.method == 'POST' else None
+    )
 
 @app.route('/mantenimiento/<int:id>/eliminar', methods=['POST'])
 def eliminar_mantenimiento(id):
@@ -486,101 +574,7 @@ def eliminar_mantenimiento(id):
     cursor.execute("DELETE FROM mantenimientos WHERE id = %s", (id,))
     db.commit()
     cursor.close()
-    return redirect(url_for('mantenimiento'))
-
-@app.route('/alerta/<int:id>/leer', methods=['POST'])
-def marcar_alerta_leida(id):
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute("UPDATE alertas SET leida = 1 WHERE id = %s", (id,))
-    db.commit()
-    cursor.close()
-    
-    return redirect(request.referrer or url_for('lista_camiones'))
-
-@app.route('/sensores')
-def sensores():
-    db = get_db()
-    cursor = db.cursor()
-    
-    
-    cursor.execute("SELECT * FROM camiones")
-    camiones = cursor.fetchall()
-    
-    cursor.execute("SELECT * FROM camiones WHERE estado = 'En ruta'")
-    camiones_ruta = cursor.fetchall()
-    
-    cursor.close()
-    return render_template('sensores.html', camiones=camiones, camiones_ruta=camiones_ruta)
-
-
-ZONAS_PERMITIDAS = ['Santiago', 'Valparaíso', 'Concepción', 'Ruta 68', 'Ruta 5', 'Viña del Mar']
-
-@app.route('/actualizar_ubicacion', methods=['POST'])
-def actualizar_ubicacion():
-    camion_id = request.form.get('camion_id')
-    nueva_ubicacion = request.form.get('ubicacion', '').strip()
-    
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute("UPDATE camiones SET ubicacion_actual = %s WHERE id = %s", (nueva_ubicacion, camion_id))
-    
-    cursor.execute("SELECT * FROM camiones WHERE id = %s", (camion_id,))
-    camion = cursor.fetchone()
-    
-    
-    if nueva_ubicacion not in ZONAS_PERMITIDAS:
-        mensaje = f"El camión {camion['patente']} salió de la zona permitida (ubicación: {nueva_ubicacion})"
-        crear_alerta(camion_id, 'ubicacion', mensaje, nueva_ubicacion)
-    
-    db.commit()
-    cursor.close()
-    return redirect(url_for('sensores'))
-
-@app.route('/actualizar_temperatura', methods=['POST'])
-def actualizar_temperatura():
-    camion_id = request.form.get('camion_id')
-    nueva_temp = request.form.get('temperatura', '').strip()
-    
-    try:
-        nueva_temp = float(nueva_temp)
-    except ValueError:
-        return redirect(url_for('sensores'))
-    
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute("UPDATE camiones SET temperatura_motor = %s WHERE id = %s", (nueva_temp, camion_id))
-    
-    
-    cursor.execute("SELECT * FROM camiones WHERE id = %s", (camion_id,))
-    camion = cursor.fetchone()
-    
-    
-    if nueva_temp >= 95:
-        mensaje = f"El camión {camion['patente']} tiene temperatura crítica de motor: {nueva_temp}°C"
-        crear_alerta(camion_id, 'temperatura', mensaje, str(nueva_temp))
-    
-    db.commit()
-    cursor.close()
-    return redirect(url_for('sensores'))
-
-@app.route('/actualizar_combustible', methods=['POST'])
-def actualizar_combustible():
-    camion_id = request.form.get('camion_id')
-    litros = request.form.get('combustible', '').strip()
-    
-    try:
-        litros = float(litros)
-    except ValueError:
-        return redirect(url_for('sensores'))
-    
-    db = get_db()
-    cursor = db.cursor()
-    
-    cursor.execute("UPDATE camiones SET combustible_usado = COALESCE(combustible_usado,0) + %s WHERE id = %s", (litros, camion_id))
-    db.commit()
-    cursor.close()
-    return redirect(url_for('sensores'))
+    return redirect(url_for('mantenimiento'))  #lerolero
 
 
 

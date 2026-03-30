@@ -58,9 +58,9 @@
             <form method="POST" class="form-container">
                 <div class="form-group">
                     <label for="referencia_id">Selecciona el camión:</label>
-                    <select name="referencia_id" id="referencia_id" required>
+                    <select name="referencia_id" id="referencia_id">
                         <option value="">-- Seleccione --</option>
-                        {% for c in camiones %}
+                        {% for c in elementos %}
                         <option value="{{ c.id }}" {% if request.form.referencia_id==c.id|string %}selected{% endif %}>
                             {{ c.patente }} - {{ c.modelo }}
                         </option>
