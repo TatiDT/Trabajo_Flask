@@ -60,7 +60,7 @@
                     <label for="referencia_id">Selecciona el equipo:</label>
                     <select name="referencia_id" required>
                         <option value="">-- Seleccione --</option>
-                        {% for e in equipos %}
+                        {% for e in equipos or elementos %}
                         <option value="{{ e.id }}" {% if request.form.referencia_id==e.id|string %}selected{% endif %}>
                             {{ e.tipo }} - {{ e.modelo }} ({{ e.origen }})
                         </option>

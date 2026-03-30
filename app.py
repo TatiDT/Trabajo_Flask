@@ -56,18 +56,33 @@ def crear_alerta(camion_id, tipo, mensaje, datos_adicionales=None):
 
 def verificar_alerta_mantenimiento(camion):
     km_actual = camion['kilometraje']
-    ultimo_mantenimiento = camion['ultimo_mantenimiento_km']
-    necesita_mantenimiento = km_actual - ultimo_mantenimiento >= 5000
-    if necesita_mantenimiento:
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute("""SELECT id FROM alertas WHERE camion_id=%s AND tipo='mantenimiento' AND leida=0""", (camion['id'],))
+    
+    
+    multiplos = km_actual // 5000   # ej: 12300 // 5000 = 2
+    
+    if multiplos == 0:
+        return
+    
+    db = get_db()
+    cursor = db.cursor()
+    
+    for i in range(1, multiplos + 1):
+        km_umbral = i * 5000
         
-        existe = cursor.fetchone()  #fetchone pide cursor que recoja solo la primera fila luego se detiene
-        cursor.close()
+        
+        cursor.execute("""
+            SELECT id FROM alertas 
+            WHERE camion_id = %s 
+              AND tipo = 'mantenimiento' 
+              AND datos_adicionales = %s
+        """, (camion['id'], str(km_umbral)))
+        
+        existe = cursor.fetchone()
         if not existe:
-            mensaje = f"El camión {camion['patente']} ha alcanzado {km_actual} km y requiere mantenimiento preventivo."
-            crear_alerta(camion['id'], 'mantenimiento', mensaje)
+            mensaje = f"El camión {camion['patente']} ha alcanzado {km_umbral} km y requiere mantenimiento preventivo."
+            crear_alerta(camion['id'], 'mantenimiento', mensaje, str(km_umbral))
+    
+    cursor.close()
 
 
 def actualizar_kilometraje_automatico():
@@ -75,7 +90,7 @@ def actualizar_kilometraje_automatico():
         db= get_db()
         cursor = db.cursor()
         cursor.execute("""
-            SELECT id, kilometraje, ultimo_mantenimiento_km, patente 
+            SELECT id, kilometraje, patente 
             FROM camiones WHERE estado = 'En ruta'
         """)
         camiones = cursor.fetchall()
@@ -94,7 +109,7 @@ def apagar_scheduler():
     scheduler.shutdown()
 
 atexit.register(apagar_scheduler)
-scheduler.add_job(func=actualizar_kilometraje_automatico, trigger="interval", seconds=5)
+scheduler.add_job(func=actualizar_kilometraje_automatico, trigger="interval", seconds=10)
 scheduler.start()
 
 @app.teardown_appcontext
