@@ -60,7 +60,7 @@
                     <label for="referencia_id">Selecciona el camión:</label>
                     <select name="referencia_id" id="referencia_id">
                         <option value="">-- Seleccione --</option>
-                        {% for c in elementos %}
+                        {% for c in elementos or camiones %}
                         <option value="{{ c.id }}" {% if (request.form.get('referencia_id')|int==c.id) or (mantenimiento
                             and mantenimiento.referencia_id==c.id) %} selected {% endif %}>
                             {{ c.patente }} - {{ c.modelo }}
