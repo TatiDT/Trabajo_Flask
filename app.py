@@ -1,7 +1,7 @@
 ﻿import pymysql
 from flask import Flask, render_template, request, redirect, url_for, g
-
 from apscheduler.schedulers.background import BackgroundScheduler
+from datetime import date
 import random
 import atexit
 
@@ -54,8 +54,9 @@ def crear_alerta(camion_id, tipo, mensaje, datos_adicionales=None):
     db.commit()
     cursor.close()
 
-def verificar_alerta_mantenimiento(camion):
-    km_actual = camion['kilometraje']
+def verificar_alerta_mantenimiento(camion, km_actual=None):
+    if km_actual is None:
+        km_actual = camion['kilometraje']
     
     
     multiplos = km_actual // 5000   # ej: 12300 // 5000 = 2
@@ -99,7 +100,7 @@ def actualizar_kilometraje_automatico():
             incremento = random.randint(50, 200)
             nuevo_km = camion['kilometraje'] + incremento
             cursor.execute("UPDATE camiones SET kilometraje = %s WHERE id = %s", (nuevo_km, camion['id']))
-            verificar_alerta_mantenimiento(camion)
+            verificar_alerta_mantenimiento(camion, km_actual=nuevo_km)
         db.commit()
         cursor.close()
     
@@ -125,7 +126,15 @@ def marcar_alerta_leida(id):
     cursor.execute("UPDATE alertas SET leida = 1 WHERE id = %s", (id,))
     db.commit()
     cursor.close()
-    
+    return redirect(request.referrer or url_for('lista_camiones'))
+
+@app.route('/alerta/<int:id>/eliminar', methods=['POST'])
+def eliminar_alerta(id):
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("DELETE FROM alertas WHERE id = %s", (id,))
+    db.commit()
+    cursor.close()
     return redirect(request.referrer or url_for('lista_camiones'))
 
 @app.route('/sensores')
@@ -159,9 +168,14 @@ def actualizar_ubicacion():
     camion = cursor.fetchone()
     
     
-    if nueva_ubicacion not in ZONAS_PERMITIDAS:
-        mensaje = f"El camión {camion['patente']} salió de la zona permitida (ubicación: {nueva_ubicacion})"
-        crear_alerta(camion_id, 'ubicacion', mensaje, nueva_ubicacion)
+    if nueva_ubicacion.lower() not in [z.lower() for z in ZONAS_PERMITIDAS]:
+        cursor.execute("""
+            SELECT id FROM alertas
+            WHERE camion_id = %s AND tipo = 'ubicacion' AND datos_adicionales = %s AND leida = 0
+        """, (camion_id, nueva_ubicacion))
+        if not cursor.fetchone():
+            mensaje = f"El camión {camion['patente']} salió de la zona permitida (ubicación: {nueva_ubicacion})"
+            crear_alerta(camion_id, 'ubicacion', mensaje, nueva_ubicacion)
     
     db.commit()
     cursor.close()
@@ -187,8 +201,13 @@ def actualizar_temperatura():
     
     
     if nueva_temp >= 95:
-        mensaje = f"El camión {camion['patente']} tiene temperatura critica: {nueva_temp}°C"
-        crear_alerta(camion_id, 'temperatura', mensaje, str(nueva_temp))
+        cursor.execute("""
+            SELECT id FROM alertas
+            WHERE camion_id = %s AND tipo = 'temperatura' AND leida = 0
+        """, (camion_id,))
+        if not cursor.fetchone():
+            mensaje = f"El camión {camion['patente']} tiene temperatura critica: {nueva_temp}°C"
+            crear_alerta(camion_id, 'temperatura', mensaje, str(nueva_temp))
     
     db.commit()
     cursor.close()
@@ -219,14 +238,20 @@ def actualizar_combustible():
     camion = cursor.fetchone()
     
     
-    if litros > 30:
-        mensaje = f"El camión {camion['patente']} registró un consumo elevado de combustible: {litros} L"
-        crear_alerta(camion_id, 'combustible', mensaje, str(litros))
+    combustible_total = camion['combustible_usado'] or 0
+    if combustible_total > 30:
+        cursor.execute("""
+            SELECT id FROM alertas
+            WHERE camion_id = %s AND tipo = 'combustible' AND leida = 0
+        """, (camion_id,))
+        if not cursor.fetchone():
+            mensaje = f"El camión {camion['patente']} registró un consumo acumulado elevado de combustible: {combustible_total} L"
+            crear_alerta(camion_id, 'combustible', mensaje, str(combustible_total))
     
     db.commit()
     cursor.close()
     return redirect(url_for('sensores'))
-   
+
 
 
 @app.route('/')
@@ -279,7 +304,13 @@ def nuevo_camion():
         cursor.execute("""
             INSERT INTO camiones (patente, modelo, estado, kilometraje, ultimo_mantenimiento_km)
             VALUES (%s, %s, %s, %s, %s)
-        """, (patente, modelo, estado, kilometraje, kilometraje))  
+        """, (patente, modelo, estado, kilometraje, kilometraje))
+        if estado == 'En mantenimiento':
+            camion_id = cursor.lastrowid
+            cursor.execute("""
+                INSERT INTO mantenimientos (tipo_referencia, referencia_id, fecha_inicio, fecha_fin, descripcion)
+                VALUES ('camion', %s, %s, NULL, 'Mantenimiento registrado al ingresar el camión')
+            """, (camion_id, date.today()))
         db.commit()
         cursor.close()
         return redirect(url_for('lista_camiones'))
@@ -396,6 +427,8 @@ def nuevo_mantenimiento_camion():
             INSERT INTO mantenimientos (tipo_referencia, referencia_id, fecha_inicio, fecha_fin, descripcion)
             VALUES ('camion', %s, %s, %s, %s)
         """, (referencia_id, fecha_inicio, fecha_fin, descripcion))
+        if not fecha_fin:
+            cursor.execute("UPDATE camiones SET estado = 'En mantenimiento' WHERE id = %s", (referencia_id,))
         db.commit()
         cursor.close()
         return redirect(url_for('mantenimiento'))
@@ -469,11 +502,33 @@ def editar_camion(id):
             cursor.close()
             return render_template('nuevo_camion.html', camion=camion, editando=True, error=error)
         
-        # Actualizar
+        # Obtener estado anterior antes de actualizar
+        cursor.execute("SELECT estado FROM camiones WHERE id = %s", (id,))
+        estado_anterior = cursor.fetchone()['estado']
+
         cursor.execute("""
             UPDATE camiones SET patente=%s, modelo=%s, estado=%s, kilometraje=%s
             WHERE id=%s
         """, (patente, modelo, estado, kilometraje, id))
+
+        if estado == 'En mantenimiento' and estado_anterior != 'En mantenimiento':
+            # Pasó a En mantenimiento: crear registro si no hay uno activo
+            cursor.execute("""
+                SELECT id FROM mantenimientos
+                WHERE tipo_referencia = 'camion' AND referencia_id = %s AND fecha_fin IS NULL
+            """, (id,))
+            if not cursor.fetchone():
+                cursor.execute("""
+                    INSERT INTO mantenimientos (tipo_referencia, referencia_id, fecha_inicio, fecha_fin, descripcion)
+                    VALUES ('camion', %s, %s, NULL, 'Mantenimiento registrado al cambiar estado del camión')
+                """, (id, date.today()))
+        elif estado != 'En mantenimiento' and estado_anterior == 'En mantenimiento':
+            # Salió de En mantenimiento: cerrar el mantenimiento activo
+            cursor.execute("""
+                UPDATE mantenimientos SET fecha_fin = %s
+                WHERE tipo_referencia = 'camion' AND referencia_id = %s AND fecha_fin IS NULL
+            """, (date.today(), id))
+
         db.commit()
         cursor.close()
         return redirect(url_for('lista_camiones'))
@@ -489,6 +544,8 @@ def editar_camion(id):
 def eliminar_camion(id):
     db = get_db()
     cursor = db.cursor()
+    cursor.execute("DELETE FROM alertas WHERE camion_id = %s", (id,))
+    cursor.execute("DELETE FROM mantenimientos WHERE tipo_referencia = 'camion' AND referencia_id = %s", (id,))
     cursor.execute("DELETE FROM camiones WHERE id = %s", (id,))
     db.commit()
     cursor.close()
@@ -529,6 +586,7 @@ def editar_equipo(id):
 def eliminar_equipo(id):
     db = get_db()
     cursor = db.cursor()
+    cursor.execute("DELETE FROM mantenimientos WHERE tipo_referencia = 'equipo' AND referencia_id = %s", (id,))
     cursor.execute("DELETE FROM equipos WHERE id = %s", (id,))
     db.commit()
     cursor.close()
@@ -563,19 +621,25 @@ def editar_mantenimiento(id):
 
         if not error:
             cursor.execute("""
-                UPDATE mantenimientos 
+                UPDATE mantenimientos
                 SET referencia_id=%s, fecha_inicio=%s, fecha_fin=%s, descripcion=%s
                 WHERE id=%s
             """, (referencia_id, fecha_inicio, fecha_fin, descripcion, id))
+
+            if mantenimiento['tipo_referencia'] == 'camion':
+                if fecha_fin:
+                    cursor.execute("UPDATE camiones SET estado = 'Disponible' WHERE id = %s", (referencia_id,))
+                else:
+                    cursor.execute("UPDATE camiones SET estado = 'En mantenimiento' WHERE id = %s", (referencia_id,))
 
             db.commit()
             cursor.close()
             return redirect(url_for('mantenimiento'))
 
-        tipo = tipo_referencia
+        tipo = tipo_referencia or mantenimiento['tipo_referencia']
 
     else:
-        
+
         tipo = mantenimiento['tipo_referencia']
 
     
