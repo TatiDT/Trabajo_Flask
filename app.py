@@ -159,7 +159,10 @@ ZONAS_PERMITIDAS = ['Santiago', 'Valparaíso', 'Concepción', 'Ruta 68', 'Ruta 5
 def actualizar_ubicacion():
     camion_id = request.form.get('camion_id')
     nueva_ubicacion = request.form.get('ubicacion', '').strip()
-    
+
+    if not nueva_ubicacion:
+        return redirect(url_for('sensores'))
+
     db = get_db()
     cursor = db.cursor()
     cursor.execute("UPDATE camiones SET ubicacion_actual = %s WHERE id = %s", (nueva_ubicacion, camion_id))
@@ -188,6 +191,8 @@ def actualizar_temperatura():
     
     try:
         nueva_temp = float(nueva_temp)
+        if nueva_temp < 0 or nueva_temp > 200:
+            return redirect(url_for('sensores'))
     except ValueError:
         return redirect(url_for('sensores'))
     
@@ -220,6 +225,8 @@ def actualizar_combustible():
     
     try:
         litros = float(litros)
+        if litros <= 0:
+            return redirect(url_for('sensores'))
     except ValueError:
         return redirect(url_for('sensores'))
     
@@ -285,9 +292,13 @@ def nuevo_camion():
         estado = request.form.get('estado', '').strip()
         kilometraje = request.form.get('kilometraje', '').strip()
         
+        ESTADOS_VALIDOS = ['Disponible', 'En ruta', 'En mantenimiento']
+
         error = None
         if not patente or not modelo or not estado or not kilometraje:
             error = "Todos los campos son obligatorios."
+        elif estado not in ESTADOS_VALIDOS:
+            error = "Estado no válido."
         else:
             try:
                 kilometraje = int(kilometraje)
@@ -295,12 +306,17 @@ def nuevo_camion():
                     error = "El kilometraje no puede ser negativo."
             except ValueError:
                 error = "El kilometraje debe ser un número entero."
-        
+
         if error:
             return render_template('nuevo_camion.html', error=error)
-        
+
         db = get_db()
         cursor = db.cursor()
+        cursor.execute("SELECT id FROM camiones WHERE patente = %s", (patente,))
+        if cursor.fetchone():
+            cursor.close()
+            return render_template('nuevo_camion.html', error=f"Ya existe un camión con la patente {patente}.")
+
         cursor.execute("""
             INSERT INTO camiones (patente, modelo, estado, kilometraje, ultimo_mantenimiento_km)
             VALUES (%s, %s, %s, %s, %s)
@@ -484,9 +500,12 @@ def editar_camion(id):
         kilometraje = request.form.get('kilometraje', '').strip()
         
         # Validaciones
+        ESTADOS_VALIDOS = ['Disponible', 'En ruta', 'En mantenimiento']
         error = None
         if not patente or not modelo or not estado or not kilometraje:
             error = "Todos los campos son obligatorios."
+        elif estado not in ESTADOS_VALIDOS:
+            error = "Estado no válido."
         else:
             try:
                 kilometraje = int(kilometraje)
@@ -494,9 +513,13 @@ def editar_camion(id):
                     error = "El kilometraje no puede ser negativo."
             except ValueError:
                 error = "El kilometraje debe ser un número entero."
-        
+
+        if not error:
+            cursor.execute("SELECT id FROM camiones WHERE patente = %s AND id != %s", (patente, id))
+            if cursor.fetchone():
+                error = f"Ya existe otro camión con la patente {patente}."
+
         if error:
-            # Obtener el camión actual para mostrarlo en el formulario
             cursor.execute("SELECT * FROM camiones WHERE id = %s", (id,))
             camion = cursor.fetchone()
             cursor.close()
