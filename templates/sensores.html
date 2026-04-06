@@ -9,8 +9,8 @@
 
 <!-- ========== SECCIÓN 1: KILOMETRAJE ========== -->
 <div class="sensor-section">
-    <h2>Kilometraje (Actualización automática)</h2>
-    <p>El sistema actualiza el kilometraje automáticamente cada 60 segundos. Cuando un camión alcanza 5000 km desde su último mantenimiento, se genera una alerta.</p>
+    <h2>Kilometraje</h2>
+    <p> Cuando un camión alcanza 5000 km se genera una alerta.</p>
     <div class="table-container">
         <table class="trucks-table">
             <thead>
@@ -18,8 +18,8 @@
                     <th>Patente</th>
                     <th>Modelo</th>
                     <th>Kilometraje actual</th>
-                    <th>Último mantenimiento (km)</th>
-                    <th>Próximo mantenimiento (km)</th>
+                    
+                    
                 </tr>
             </thead>
             <tbody>
@@ -28,8 +28,8 @@
                     <td>{{ c.patente }}</td>
                     <td>{{ c.modelo }}</td>
                     <td>{{ "{:,.0f}".format(c.kilometraje or 0).replace(',', '.') }} km</td>
-                    <td>{{ "{:,.0f}".format(c.ultimo_mantenimiento_km or 0).replace(',', '.') }} km</td>
-                    <td>{{ "{:,.0f}".format((c.ultimo_mantenimiento_km or 0) + 5000).replace(',', '.') }} km</td>
+                    
+                    
                 </tr>
                 {% endfor %}
             </tbody>
