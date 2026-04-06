@@ -6,8 +6,8 @@ import random
 import atexit
 
 app = Flask(__name__)
-
-scheduler = BackgroundScheduler() 
+#componente, funciones automaticas sin dependencias , sin request sin un click
+scheduler = BackgroundScheduler() #sub hilo de trabajo -> pasarle app context
 
 
 app.config['DB_HOST'] = 'localhost'
@@ -27,9 +27,9 @@ def get_db():
         )
     return g.db
 
-@app.context_processor
-def inject_alertas():
-    try:
+@app.context_processor #pasa la alaerta a todas plantillas automaticamente 
+def inject_alertas(): #inyecta las alertas no leidas en todas las plantillas
+    try:   #evita que si hay un error  en la peticion no se caiga la pagina completa 
         db = get_db()
         cursor = db.cursor()
         cursor.execute("""
@@ -43,7 +43,7 @@ def inject_alertas():
         cursor.close()
         return dict(alertas_no_leidas=alertas) #DEBE retornar un diccionario con la clave 'alertas_no_leidas' para que esté disponible en todas las plantillas como variable global
     except:
-        return dict(alertas_no_leidas=[])
+        return dict(alertas_no_leidas=[]) #silla no devuelve nada y asi se evita errores
 
 
 def crear_alerta(camion_id, tipo, mensaje, datos_adicionales=None):
